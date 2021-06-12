@@ -1,0 +1,11 @@
+14923 - 139774552286976 @ 2017-10-17 09:39:59,869 {log_miner:       162  -            the_main_pro()} INFO - 
+#!/IJN:
+###               ##
+ #       ##      #  #
+ #      #  #     #
+ #      #  #     #  #
+###  #   ##   #   ##   #
+
+14923 - 139774552286976 @ 2017-10-17 09:39:59,870 {log_miner:       164  -            the_main_pro()} INFO - watching while True. ..
+14923 - 139774552286976 @ 2017-10-17 09:40:27,957 {log_miner:       114  -          parse_log_file()} INFO - Will now write data from 3116589_IDS_ERROR_LOG.err to DB. Thank you!
+14923 - 139774552286976 @ 2017-10-17 09:40:28,022 {log_miner:       170  -            the_main_pro()} ERROR - (cx_Oracle.DatabaseError) DPI-1047: 64-bit Oracle Client library cannot be loaded: "libclntsh.so: cannot open shared object file: No such file or directory". See https://oracle.github.io/odpi/doc/installation.html#linux for help
