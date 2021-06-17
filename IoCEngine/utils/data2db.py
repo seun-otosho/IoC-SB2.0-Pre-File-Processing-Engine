@@ -219,9 +219,10 @@ def prep_grntr_id(args):
         name = last_name if last_name not in ('', None) else first_name
         logger.info(f"{name=}")
         name2u = f"{last_name} {first_name}" if last_name not in ('', None) and first_name not in ('', None) else name
-        _id = f"{id}-F-{name2u}"
-        logger.info(f"{_id=}")
-        return _id
+        if name2u not in ('', None):
+            _id = f"{id}-F-{name2u}"
+            logger.info(f"{_id=}")
+            return _id
 
 
 def grntr_type_check(grntr_type: str) -> str:
@@ -256,9 +257,10 @@ def prep_prnc_id(args):
     name = last_name if last_name not in ('', None) else first_name
     logger.info(f"{name=}")
     name2u = f"{last_name} {first_name}" if last_name not in ('', None) and first_name not in ('', None) else name
-    _id = f"{id}-F-{name2u}"
-    logger.info(f"{_id=}")
-    return _id
+    if name2u not in ('', None):
+        _id = f"{id}-F-{name2u}"
+        logger.info(f"{_id=}")
+        return _id
 
 
 def stream_grntr(_type: str, index_col: str, df: pd.DataFrame()):
@@ -308,7 +310,7 @@ def stream_prnc(_type: str, index_col: str, df: pd.DataFrame()):
 
 def stream_from(d, i, sub, typ):
     if not i % 35710: count_down(None, 5)
-    d["submission"], d["type"] = sub, typ
+    d["submission"], d["type"] = sub if sub else d["submission"], typ if typ else d["type"]
     d["_id"] = d['Index']
     del d['Index']
     d = {i: d[i] for i in d if d[i] not in ('', 'none', None,) and i != 'ndx'}
@@ -328,33 +330,26 @@ def prnc_cols():
     return ps0, ps1, psa, xtr_cols
 
 
+def prep_sngl_col_id(args):
+    dpid, ndx, cust_id, account_no, cycle_ver = args
+    if str(ndx).replace('\\', '').replace('\n', '').replace(' ', '').replace('-', '').replace('_', '').isalpha():
+        return None
+    if account_no and cust_id:
+        return "-".join((dpid, str(cust_id).strip(), str(account_no).strip(), str(int(cycle_ver))))
+    else:
+        return "-".join((dpid, str(ndx).strip(), str(int(cycle_ver))))
+
+
 def stream_df(_type, index_col, df):
     i = 0
+    for fld in [f for f in ('cust_id', 'account_no', index_col, ) if f not in df]:
+        df.loc[:, fld] = None
+    df.loc[:, '_id'] = df[['dpid', index_col, 'cust_id', 'account_no', 'cycle_ver', ]].apply(
+        lambda x: prep_sngl_col_id(x), axis=1)
     for ii in df.itertuples():
         try:
             d, i = ii._asdict(), i + 1
-            if not i % 35710: count_down(None, 5)
-            if not str(d[index_col]
-                       ).replace('\\', '').replace('\n', '').replace(' ', '').replace('-', '').replace('_', ''
-                                                                                                       ).isalpha():
-                del d['Index']
-
-                # if d[index_col]:
-                d = {i: d[i] for i in d if d[i] not in ('', None)}
-                # d['submission'] = _type.split('_')[0]
-                if 'account_no' in df and 'cust_id' in df:
-                    d["_id"] = "-".join((
-                        d['dpid'], str(d['cust_id']).strip(), str(d['account_no']).strip(), str(int(d['cycle_ver']))
-                    ))
-                else:
-                    d["_id"] = "-".join((d['dpid'], str(d[index_col]).strip(), str(int(d['cycle_ver']))))
-                #
-                d["_index"], d["_type"] = es_i, 'submissions'  # _type, , d["_op_type"] 'update'
-                # dd = {"_index": es_i, "_type": "submissions", "_op_type": "update", '_id': d["_id"], }
-                # del d['ndx']# , d["_id"]
-                # dd["doc"] = d
-                # d = dd
-                yield d
+            yield from stream_from(d, i, None, None)
         except Exception as e:
             logger.error(e)
 
