@@ -59,7 +59,7 @@ def normal_numbers(num):
     mdjlog = get_logger(__name__)
     if num:
         try:
-            num = str(num).replace(' ', '').replace('_', '').replace('-', '').replace(',', '')
+            num = str(num).replace(' ', '').replace('_', '').replace('-', '').replace(',', '').strip()
         except Exception as e:
             mdjlog.error(f'{e}')
         if (
@@ -67,7 +67,7 @@ def normal_numbers(num):
                                                                                                          '').isdigit()
                 or str(num).isdigit()
         ):
-            num = str(num).replace(' ', '').replace('_', '').replace('-', '').replace(',', '')
+            # num = str(num).replace(' ', '').replace('_', '').replace('-', '').replace(',', '')
             num = float(num)  # if '.' in str(num) else int(num)
 
             if str(num) == '':

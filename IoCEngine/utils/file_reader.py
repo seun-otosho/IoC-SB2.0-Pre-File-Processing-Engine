@@ -196,7 +196,7 @@ def xtrct_all_data(file_meta):
                     route_df((file_meta, sgmnt[0], df))
                 else:
                     mdjlog.info('no data. ..')
-            mdjlog.info('exiting. ..')
+            mdjlog.info('done. ..')
         except Exception as e:
             mdjlog.error(e)
     except Exception as e:

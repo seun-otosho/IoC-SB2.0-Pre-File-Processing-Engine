@@ -36,7 +36,7 @@ def normalize_amts(file_dict, cxcf_data):
     for fld in amnt_fields():
         if fld in cxcf_data:
             try:
-                cxcf_data[fld] = cxcf_data[fld].apply(normal_numbers)
+                cxcf_data.loc[:, fld] = cxcf_data[fld].apply(normal_numbers)
             except Exception as e:
                 mdjlog.warn(f'{fld=}\t|\t{e}')
     
@@ -989,6 +989,6 @@ def fields2date(file_dict, df):
 
 def nrmlz_d8fld(df, fld, mdjlog):
     try:
-        df[fld] = df[fld].apply(to_date)
+        df.loc[:, fld] = df[fld].apply(to_date)
     except Exception as e:
         mdjlog.warn(f'{fld=}\t|\t{e=}')

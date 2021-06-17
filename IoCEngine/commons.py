@@ -116,7 +116,7 @@ cdt_udf_modes = ('cdt', 'udf',)
 iff_sb2_modes = ('cmb', 'fandl', 'iff', 'mfi', 'pmi',)
 cs, fs, ns = ('comm', 'corp',), ('commfac', 'consfac', 'corpfac', 'fac', 'ndvdlfac',), ('cons', 'ndvdl',)
 cf, nf, sf = ('commfac', 'corpfac', 'fac',), ('consfac', 'ndvdlfac', 'fac',), ('fac',)
-gs, pos = ('grntr',), ('prnc',)
+gs, ps = ('grntr',), ('prnc',)
 sngl_sbjt_in_modes = cs + fs + ns
 sngl_crdt_in_modes = cf + nf + sf
 

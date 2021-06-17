@@ -16,7 +16,7 @@ from IoCEngine import drop_zone
 from IoCEngine.SHU.trans4mas import corp_vals, ndvdl_vals, fac_vals
 from IoCEngine.celeryio import app
 from IoCEngine.commons import (all_all_modes, all_corp_modes, all_ndvdl_modes, count_down, cf, cs, fs, nf, ns, getID,
-                               mk_dir, mk_dp_x_dir, cdt_udf_modes, sngl_sbjt_in_modes, sgmnt_def, g_meta, )
+                               mk_dir, mk_dp_x_dir, cdt_udf_modes, sngl_sbjt_in_modes, sgmnt_def, g_meta, gs, ps)
 from IoCEngine.cores import ppns
 from IoCEngine.logger import get_logger
 from IoCEngine.utils.db2data import combo_data, fac_data, corp_data, ndvdl_data, upd8DFstatus
@@ -50,15 +50,13 @@ def route_file(file_data):
             if '_all' in file_name:
                 file_data.update(batch_no=getID())
                 xtrct_all_data(file_data.reload())  # data_pro_bat_no =
-            elif file_data['data_type'] in fs or file_data['data_type'] in cs + ns + ('combo',):
+            elif file_data['data_type'] in cs + fs + gs + ns + ps + ('combo',):
                 if file_name.lower().endswith(('.csv', '.txt')):
                     xtrct_ff_data(file_data)  # data_pro_bat_no =
                     # get_file_set(file_data)  # get other files in set
-                if file_name.lower().endswith('.xlsx'):
+                if file_name.lower().endswith(('.xls', '.xlsx', )):
                     xtrct_ws_data(file_data)  # data_pro_bat_no =
                     # get_file_set(file_data)  # get other files in set
-                if file_name.lower().endswith('.xls'):
-                    xtrct_ws_data(file_data)
                     # mdjlog.error("""\nHi\nWell done\nThe extension .xls for file {} is no longer supported.
                     #         Please save the file with .xlsx and let's do this again.\nThank you""".format(file_name))
         return

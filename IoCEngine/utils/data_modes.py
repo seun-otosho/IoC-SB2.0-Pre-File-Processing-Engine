@@ -51,7 +51,7 @@ def cdt():
             'phone_no1', 'e_mail_addr1',
             'psxn_in_biz1',
 
-            'phone_no1', 'sec_addr_line', 'sec_addr_city_lga', 'sec_addr_state', 'tax_id', 'pic_file_path',
+            'phone_no2', 'sec_addr_line', 'sec_addr_city_lga', 'sec_addr_state', 'tax_id', 'pic_file_path',
         ),
     }
     d.update({'corp': d['comm'], 'corpfac': d['fac'], 'ndvdl': d['cons'], 'ndvdlfac': d['fac'], })
@@ -391,7 +391,8 @@ def number_fields(): return amnt_fields()
 def date_fields():
     f = ('maturity_date', 'litigxn_date', 'int_last_paid_date', 'last_paid_date', 'acct_clsd_date', 'd8_acct_stat',
          'd8_disbursed', 'consent_d8from', 'consent_d8to', 'd8_approved', 'amend_date', 'incorp_date', 'id_code1d8xpry',
-         'id_code2d8xpry', 'birth_date', 'i_pass_expiry', 'bvn_d8xpry', 'biz_d8reg', 'birth_incorp_date',)
+         'id_code2d8xpry', 'birth_date', 'i_pass_expiry', 'bvn_d8xpry', 'biz_d8reg', 'birth_incorp_date', 'birth_date1',
+    )
     return f
 
 
