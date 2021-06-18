@@ -49,7 +49,9 @@ mdjlog = logger('jarvis')
 # """
 
 def fig_str(str2fig: str = None):
-    str2fig = "Internet of Credit, IoC" if str2fig is None else str2fig
+    str2fig = """Internet
+of Credit
+,   IoC""" if str2fig is None else str2fig
     fig_font = font2u()
     figletstr = pyfiglet.figlet_format(str2fig, font=fig_font)
     return f"""

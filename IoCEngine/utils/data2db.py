@@ -179,13 +179,13 @@ def upd8col_mappings(mdjlogger, incols, ioc_cols, in_mod):
 
 
 def prep_grntr_id(args):
-    if all(arg.strip() in ('', None,) for arg in args[3:]):
+    if all(arg.strip() in ('', None,) for arg in args[4:]):
         return None
-    dpid, account_no, grntr_type = args[:3]
-    biz_name, biz_reg_no = (i.strip() for i in args[3:5])
-    last_name, first_name, national_id_no, drivin_license_no, bvn, i_pass_no = (i.strip() for i in args[5:])
+    cycle_ver, dpid, account_no, grntr_type = args[:4]
+    biz_name, biz_reg_no = (i.strip() for i in args[4:6])
+    last_name, first_name, national_id_no, drivin_license_no, bvn, i_pass_no = (i.strip() for i in args[6:])
     logger.info(
-        f'''{account_no=}, {grntr_type=},
+        f'''{cycle_ver=}, {account_no=}, {grntr_type=},
         {biz_name=}, {biz_reg_no=},
         {last_name=}, {first_name=}, {national_id_no=}, {drivin_license_no=}, {bvn=}, {i_pass_no=}'''
     )
@@ -194,35 +194,35 @@ def prep_grntr_id(args):
         if biz_reg_no not in ('', None):
             _id = f"{id}-R-{biz_reg_no}"
             logger.info(f"{_id=}")
-            return _id
+            return f"{_id}-{cycle_ver}"
         if biz_name not in ('', None):
             _id = f"{id}-C-{biz_name}"
             logger.info(f"{_id=}")
-            return _id
+            return f"{_id}-{cycle_ver}"
     else:
         if bvn not in ('', None):
             _id = f"{id}-B-{bvn}"
             logger.info(f"{_id=}")
-            return _id
+            return f"{_id}-{cycle_ver}"
         if i_pass_no not in ('', None):
             _id = f"{id}-I-{i_pass_no}"
             logger.info(f"{_id=}")
-            return _id
+            return f"{_id}-{cycle_ver}"
         if drivin_license_no not in ('', None):
             _id = f"{id}-D-{drivin_license_no}"
             logger.info(f"{_id=}")
-            return _id
+            return f"{_id}-{cycle_ver}"
         if national_id_no not in ('', None):
             _id = f"{id}-N-{national_id_no}"
             logger.info(f"{_id=}")
-            return _id
+            return f"{_id}-{cycle_ver}"
         name = last_name if last_name not in ('', None) else first_name
         logger.info(f"{name=}")
         name2u = f"{last_name} {first_name}" if last_name not in ('', None) and first_name not in ('', None) else name
         if name2u not in ('', None):
             _id = f"{id}-F-{name2u}"
             logger.info(f"{_id=}")
-            return _id
+            return f"{_id}-{cycle_ver}"
 
 
 def grntr_type_check(grntr_type: str) -> str:
@@ -231,41 +231,41 @@ def grntr_type_check(grntr_type: str) -> str:
 
 
 def prep_prnc_id(args):
-    if all(arg in ('', None,) for arg in args[1:]):
+    if all(arg in ('', None,) for arg in args[2:]):
         return None
-    dpid, cust_id, last_name, first_name, national_id_no, drivin_license_no, bvn, i_pass_no = args
-    logger.info(f"""{dpid=}, {cust_id=},
+    cycle_ver, dpid, cust_id, last_name, first_name, national_id_no, drivin_license_no, bvn, i_pass_no = args
+    logger.info(f"""{cycle_ver=}, {dpid=}, {cust_id=},
         {last_name=}, {first_name=}, {national_id_no=}, {drivin_license_no=}, {bvn=}, {i_pass_no=}"""
     )
     id = f"{dpid}-{cust_id}"
     if bvn not in ('', None):
         _id = f"{id}-B-{bvn}"
         logger.info(f"{_id=}")
-        return _id
+        return f"{_id}-{cycle_ver}"
     if i_pass_no not in ('', None):
         _id = f"{id}-I-{i_pass_no}"
         logger.info(f"{_id=}")
-        return _id
+        return f"{_id}-{cycle_ver}"
     if drivin_license_no not in ('', None):
         _id = f"{id}-D-{drivin_license_no}"
         logger.info(f"{_id=}")
-        return _id
+        return f"{_id}-{cycle_ver}"
     if national_id_no not in ('', None):
         _id = f"{id}-N-{national_id_no}"
         logger.info(f"{_id=}")
-        return _id
+        return f"{_id}-{cycle_ver}"
     name = last_name if last_name not in ('', None) else first_name
     logger.info(f"{name=}")
     name2u = f"{last_name} {first_name}" if last_name not in ('', None) and first_name not in ('', None) else name
     if name2u not in ('', None):
         _id = f"{id}-F-{name2u}"
         logger.info(f"{_id=}")
-        return _id
+        return f"{_id}-{cycle_ver}"
 
 
 def stream_grntr(_type: str, index_col: str, df: pd.DataFrame()):
     df.loc[:, '_id'] = df[[
-        'dpid', 'account_no', 'grntr_type',
+        'cycle_ver', 'dpid', 'account_no', 'grntr_type',
         'biz_name', 'biz_reg_no',
         'last_name', 'first_name', 'national_id_no', 'drivin_license_no', 'bvn', 'i_pass_no',
     ]].apply(lambda x: prep_grntr_id(x), axis=1)
@@ -292,9 +292,8 @@ def stream_prnc(_type: str, index_col: str, df: pd.DataFrame()):
     pdf1 = df[ps1 + psa + xtr_cols]
     pdf1.columns = ps0 + psa + xtr_cols
     pdf = pd.concat([pdf0, pdf1])
-    pdf.loc[:, '_id'] = pdf[[
-        'dpid', 'cust_id', 'last_name', 'first_name', 'national_id_no', 'drivin_license_no', 'bvn', 'i_pass_no',
-    ]].apply(lambda x: prep_prnc_id(x), axis=1)
+    pdf.loc[:, '_id'] = pdf[['cycle_ver', 'dpid', 'cust_id', 'last_name', 'first_name', 'national_id_no',
+                             'drivin_license_no', 'bvn', 'i_pass_no', ]].apply(lambda x: prep_prnc_id(x), axis=1)
     pdf = pdf[~pdf['_id'].isna()]
     pdf.fillna('', inplace=True)
     pdf.set_index('_id', inplace=True)
@@ -311,7 +310,8 @@ def stream_prnc(_type: str, index_col: str, df: pd.DataFrame()):
 def stream_from(d, i, sub, typ):
     if not i % 35710: count_down(None, 5)
     d["submission"], d["type"] = sub if sub else d["submission"], typ if typ else d["type"]
-    d["_id"] = d['Index']
+    d["cycle_ver"] = int(d["cycle_ver"])
+    d["_id"], d["cy_dp"] = d['Index'], f'{d["cycle_ver"]}-{d["dpid"]}'
     del d['Index']
     d = {i: d[i] for i in d if d[i] not in ('', 'none', None,) and i != 'ndx'}
     d["_index"], d["_type"], d['sub_cy'] = es_i, 'submissions', datetime.now()
@@ -346,6 +346,8 @@ def stream_df(_type, index_col, df):
         df.loc[:, fld] = None
     df.loc[:, '_id'] = df[['dpid', index_col, 'cust_id', 'account_no', 'cycle_ver', ]].apply(
         lambda x: prep_sngl_col_id(x), axis=1)
+    df = df[~df[index_col].isin(['', None, ])]
+    df.set_index('_id', inplace=True)
     for ii in df.itertuples():
         try:
             d, i = ii._asdict(), i + 1
@@ -458,9 +460,9 @@ def indexDF(data_store, data_tpl, df, dp_name, mdjlogger):
     df.loc[:, 'status'], df.loc[:, 'dp_name'], df.loc[:, 'data_file'] = 'Loaded', dp_name, data_tpl[0]['file_name']
     bulk_data, data_type, i, _type = [], data_tpl[1], 0, data_store
 
-    sf = cs + ns + ps
+    sf = cs + ns  # + ps
     ndx = 'cust_id' if data_tpl[1] in sf else 'account_no'
-    ndx = ['cust_id', 'last_name', 'first_name'] if data_tpl[1] in ps else ndx
+    # ndx = ['cust_id', 'last_name', 'first_name'] if data_tpl[1] in ps else ndx
 
     if 'bvn' in df.columns:
         df.loc[:, 'bvn'] = df.bvn.apply(lambda x: str(x).replace('.0', '') if str(x).endswith('.0') else str(x))
@@ -469,22 +471,23 @@ def indexDF(data_store, data_tpl, df, dp_name, mdjlogger):
         df.loc[:, 'cust_id'] = df.cust_id.apply(lambda x: str(x).replace("'", '').strip())
     if 'account_no' in df.columns:
         df.loc[:, 'account_no'] = df.account_no.apply(lambda x: str(x).replace("'", '').strip())
-    df.fillna('', inplace=True)
+    # df.fillna('', inplace=True)
 
-    df.loc[:, 'ndx'] = df.index
     if not isinstance(ndx, list):
         df.set_index(ndx, inplace=True)
         df.loc[:, ndx] = df.index
+
+    df.loc[:, 'ndx'] = df.index
     # df['sub_cy'] = datetime.strptime(data_tpl[0].date_reported, "%d-%b-%Y").date()
     df.loc[:, 'sub_cy'] = datetime.now()
-    df.to_excel(f"{dp_name} {data_type}'s segment for {data_tpl[0]['cycle_ver']} data cycle.xlsx")  # todo remove later
+    # df.to_excel(f"{dp_name} {data_type}'s segment for {data_tpl[0]['cycle_ver']} data cycle.xlsx")  # todo remove
 
     if _type == 'guarantors':
         df_stream = stream_grntr(_type, 'ndx', df)
     elif _type == 'principal_officers':
         df_stream = stream_prnc(_type, 'ndx', df)
     else:
-        df_stream = stream_df(_type, 'ndx', df)
+        df_stream = stream_df(_type, ndx, df)
 
     try:
         mdjlogger.info("#IndexinG!")

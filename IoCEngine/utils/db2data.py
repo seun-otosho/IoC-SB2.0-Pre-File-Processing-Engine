@@ -83,6 +83,26 @@ def i2df(data_doc_type, data_size, dpid, loaded_batch, ndx_col):
 
 def es_query(data_doc_type, dpid, loaded_batch):
     query = {
+    #     "bool": {"must": [{"match": {'cy_dp': f"{int(loaded_batch['cycle_ver'])}-{dpid}"}},
+    #                       # {"match": {'cycle_ver': loaded_batch['cycle_ver']}},
+    #                       # {"match": {'submission': submission_type_dict[data_doc_type]}},
+    #                       {"match": {'type': data_type_dict[data_doc_type]}}]}
+    # } if data_doc_type == 'fac' else {
+        "bool": {"must": [{"match": {'cy_dp': f"{int(loaded_batch['cycle_ver'])}-{dpid}"}},
+                          # {"match": {'dpid': dpid}},
+                          # {"match": {'cycle_ver': loaded_batch['cycle_ver']}},
+                          # {"match": {'status': 'Loaded'}}, # todo
+                          # {"match": {'submission': submission_type_dict[data_doc_type]}},
+                          {"match": {'type': data_type_dict[data_doc_type]}}]}
+    }
+    # mdjlog.info(query)
+    # count_down(None, 10)
+    return query
+
+
+"""
+def es_query(data_doc_type, dpid, loaded_batch):
+    query = {
         "bool": {"must": [{"match": {'dpid': dpid}},
                           {"match": {'cycle_ver': loaded_batch['cycle_ver']}},
                           {"match": {'submission': submission_type_dict[data_doc_type]}},
@@ -97,6 +117,7 @@ def es_query(data_doc_type, dpid, loaded_batch):
     # mdjlog.info(query)
     # count_down(None, 10)
     return query
+"""
 
 
 def upd8DFstatus(data_doc_type, df, index_col, status):
@@ -107,9 +128,10 @@ def upd8DFstatus(data_doc_type, df, index_col, status):
             data_line = {'status': status} if isinstance(status, str) else {**status}
             if 'account_no' in df and 'cust_id' in df:
                 id = "-".join(
-                    (rwd['dpid'], str(rwd['cust_id']).strip(), str(rwd['account_no']).strip(), str(rwd['cycle_ver'])))
+                    (rwd['dpid'], str(rwd['cust_id']).strip(), str(rwd['account_no']).strip(),
+                     str(int(rwd['cycle_ver']))))
             else:
-                id = "-".join((rwd['dpid'], str(rwd[index_col]).strip(), str(rwd['cycle_ver'])))
+                id = "-".join((rwd['dpid'], str(rwd[index_col]).strip(), str(int(rwd['cycle_ver']))))
             ndx_line = {'_index': es_i, '_op_type': 'update', '_type': 'submissions',
                         '_id': id, 'doc': {**data_line, **{'submission': submission_type_dict[data_doc_type],
                                                             'type': data_type_dict[data_doc_type], }},
