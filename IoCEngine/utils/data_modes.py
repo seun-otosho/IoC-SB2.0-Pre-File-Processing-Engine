@@ -398,3 +398,15 @@ def date_fields():
 
 def dates_and_number_fields():
     return date_fields() + number_fields()
+
+
+def prnc_cols():
+    ps0 = ['cust_id', 'last_name', 'first_name', 'middle_name', 'birth_date', 'gender',
+           'pri_addr_line1', 'pri_addr_line2', 'pri_addr_city_lga', 'pri_addr_state', 'pri_addr_country',
+           'national_id_no', 'drivin_license_no', 'bvn', 'i_pass_no', 'phone_no', 'e_mail_addr', 'psxn_in_biz', ]
+    ps1 = ['cust_id', 'last_name1', 'first_name1', 'middle_name1', 'birth_date1', 'gender1',
+           'pri_addr_line11', 'pri_addr_line21', 'pri_addr_city_lga1', 'pri_addr_state1', 'pri_addr_country1',
+           'national_id_no1', 'drivin_license_no1', 'bvn1', 'i_pass_no1', 'phone_no1', 'e_mail_addr1', 'psxn_in_biz1', ]
+    psa = ['phone_no2', 'sec_addr_line', 'sec_addr_city_lga', 'sec_addr_state', 'tax_id', 'pic_file_path', ]
+    xtr_cols = ['batch_no', 'cycle_ver', 'dpid', 'status', 'dp_name', 'data_file', ]
+    return ps0, ps1, psa, xtr_cols

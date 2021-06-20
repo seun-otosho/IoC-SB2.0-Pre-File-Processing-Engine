@@ -2,9 +2,12 @@ import pandas as pd
 from elasticsearch import helpers
 from pandasticsearch import Select
 
-from IoCEngine.commons import count_down, cs, data_type_dict, ns, fs, iff_sb2_modes, submission_type_dict
+from IoCEngine.commons import (
+    cs, data_type_dict, fs, ns, submission_type_dict, re_ndx_flds
+)
 from IoCEngine.config.pilot import chunk_size as split_var, es, es_i
 from IoCEngine.logger import get_logger
+from IoCEngine.utils import prep_grntr_id
 from IoCEngine.utils.file import DataBatchProcess
 
 mdjlog = get_logger('jarvis')
@@ -88,12 +91,12 @@ def es_query(data_doc_type, dpid, loaded_batch):
     #                       # {"match": {'submission': submission_type_dict[data_doc_type]}},
     #                       {"match": {'type': data_type_dict[data_doc_type]}}]}
     # } if data_doc_type == 'fac' else {
-        "bool": {"must": [{"match": {'cy_dp': f"{int(loaded_batch['cycle_ver'])}-{dpid}"}},
+        "bool": {"must": [{"match": {"cy_dp": f"{int(loaded_batch['cycle_ver'])}-{dpid}"}},
                           # {"match": {'dpid': dpid}},
                           # {"match": {'cycle_ver': loaded_batch['cycle_ver']}},
                           # {"match": {'status': 'Loaded'}}, # todo
                           # {"match": {'submission': submission_type_dict[data_doc_type]}},
-                          {"match": {'type': data_type_dict[data_doc_type]}}]}
+                          {"match": {"type": data_type_dict[data_doc_type]}}]}
     }
     # mdjlog.info(query)
     # count_down(None, 10)
@@ -122,18 +125,18 @@ def es_query(data_doc_type, dpid, loaded_batch):
 
 def upd8DFstatus(data_doc_type, df, index_col, status):
     bulk_upd8_data = []
-    for rw in df.itertuples():
+    for rwd in df.to_dict("records"):
         try:
-            rwd = rw._asdict()
+            # rwd = rw._asdict()
             data_line = {'status': status} if isinstance(status, str) else {**status}
-            if 'account_no' in df and 'cust_id' in df:
-                id = "-".join(
-                    (rwd['dpid'], str(rwd['cust_id']).strip(), str(rwd['account_no']).strip(),
-                     str(int(rwd['cycle_ver']))))
-            else:
-                id = "-".join((rwd['dpid'], str(rwd[index_col]).strip(), str(int(rwd['cycle_ver']))))
+            # if 'account_no' in df and 'cust_id' in df:
+            #     id = "-".join(
+            #         (rwd['dpid'], str(rwd['cust_id']).strip(), str(rwd['account_no']).strip(),
+            #          str(int(rwd['cycle_ver']))))
+            # else:
+            #     id = "-".join((rwd['dpid'], str(rwd[index_col]).strip(), str(int(rwd['cycle_ver']))))
             ndx_line = {'_index': es_i, '_op_type': 'update', '_type': 'submissions',
-                        '_id': id, 'doc': {**data_line, **{'submission': submission_type_dict[data_doc_type],
+                        '_id': rwd["_id"], 'doc': {**data_line, **{'submission': submission_type_dict[data_doc_type],
                                                             'type': data_type_dict[data_doc_type], }},
             }
             bulk_upd8_data.append(ndx_line)
@@ -185,7 +188,7 @@ def corp_data(dpid, loaded_batch):
                         "getting! #{} of {} Counts: {} of {} of {}".format(c, crounds, size2use, size_done, data_size))
                 except Exception as e:
                     mdjlog.error(e)
-            # corp, corp_cc_df = rez_df(corp_cc_df, loaded_batch, ndx_col)
+            corp_cc_df = corp_cc_df[corp_cc_df.submission == 'corporate']
             return True, corp_cc_df
         else:
             corp_df, corp_rez, size2use = i2df(data_doc_type, data_size, dpid, loaded_batch, ndx_col)
@@ -193,7 +196,7 @@ def corp_data(dpid, loaded_batch):
                 corp_df, size_done = conf_df(loaded_batch, mdjlog, corp_df, corp_rez)
                 mdjlog.info(
                     "getting! #{} of {} Counts: {} of {} of {}".format('1', crounds, size2use, size_done, data_size))
-                # corp, corp_df = rez_df(corp_df, loaded_batch, ndx_col)
+                corp_df = corp_df[corp_df.submission == 'corporate']
                 return True, corp_df
             else:
                 mdjlog.warn('no CORPORATE data . ..')
@@ -284,8 +287,7 @@ def ndvdl_data(dpid, loaded_batch):
                         "got! #{} of {} Counts: {} of {} of {}".format(c, crounds, size2use, size_done, data_size))
                 except Exception as e:
                     mdjlog.error(e)
-            
-            # ndvdl, ndvdl_cc_df = rez_df(ndvdl_cc_df, loaded_batch, ndx_col)
+            ndvdl_cc_df = ndvdl_cc_df[ndvdl_cc_df.submission == 'individual']
             return True, ndvdl_cc_df
         
         else:
@@ -294,7 +296,7 @@ def ndvdl_data(dpid, loaded_batch):
                 ndvdl_df, size_done = conf_df(loaded_batch, mdjlog, ndvdl_df, ndvdl_rez)
                 mdjlog.info(
                     "got! #{} of {} Counts: {} of {} of {}".format('1', crounds, size2use, size_done, data_size))
-                # ndvdl, ndvdl_df = rez_df(ndvdl_df, loaded_batch, ndx_col)
+                ndvdl_df = ndvdl_df[ndvdl_df.submission == 'individual']
                 return True, ndvdl_df
             else:
                 mdjlog.warn('no INDIVIDUAL data . ..')
@@ -313,7 +315,79 @@ def fix_str(x):
         except Exception as e:
             mdjlog.error(e)
             return '' if (str(x).replace(' ', '')).isalpha() else x
-    if x and str(x).isalpha():
-        return ''
+    return ''
+
+
+def df_rounds(args: list):
+    crounds, data_size, dpid, cc_df, type, loaded_batch, mdjlog, ndx_col, rounds, size2use, size_done = args
+    for c in range(rounds):
+        try:
+            size2use = size2use if data_size - size_done > size2use else data_size - size_done
+            cc_df = df_round(cc_df, dpid, loaded_batch, mdjlog, ndx_col, size2use, type)
+            size_done += size2use
+            mdjlog.info(f"getting! #{c} of {crounds} Counts: {size2use} of {size_done} of {data_size}")
+        except Exception as e:
+            mdjlog.error(e)
+    return cc_df
+
+
+def df_round(cc_df, dpid, loaded_batch, mdjlog, ndx_col, size2use, type):
+    df, rez, size = i2df(type, size2use, dpid, loaded_batch, ndx_col)
+    if df is not None and not df.empty:
+        df, size = conf_df(loaded_batch, mdjlog, df, rez)
+        cc_df = pd.concat([cc_df, df]) if cc_df else df
     else:
-        return ''
+        mdjlog.warn(f'no {type.upper()} data . ..')
+    return cc_df
+
+
+def grntr_data(dpid: str, loaded_batch, grntr_type: str = None):
+    mdjlog = get_logger(loaded_batch['dp_name'])
+    try:
+        data_doc_type, df, grntr_cc_df, ndx_col = 'guarantors', None, None, 'account_no'
+        data_size = int(loaded_batch[data_doc_type])
+        rounds, size_done = data_size // split_var + 1, 0
+        crounds, size2use = 1 if rounds is (0 or 1) else rounds - 1, round(data_size / rounds)
+
+        if data_size > split_var:
+            grntr_args = (crounds, data_size, dpid, grntr_cc_df, grntr_type, loaded_batch, mdjlog, ndx_col, rounds,
+                      size2use, size_done,)
+            df = df_rounds(grntr_args)
+        else:
+            df = df_round(df, dpid, loaded_batch, mdjlog, ndx_col, size2use, grntr_type)
+
+        grntr_ndx_flds = ['cycle_ver', 'dpid', 'account_no', 'grntr_type', 'biz_name', 'biz_reg_no',
+                          'last_name', 'first_name', 'national_id_no', 'drivin_license_no', 'bvn', 'i_pass_no', ]
+        re_ndx_flds(df, grntr_ndx_flds)
+        df.fillna('', inplace=True)
+        df.loc[:, '_id'] = df[grntr_ndx_flds].apply(lambda x: prep_grntr_id(x), axis=1)
+        df.set_index('_id', inplace=True)
+        return True, df
+    except Exception as e:
+        mdjlog.error(e)
+    return False, None
+
+
+def prnc_data(dpid: str, loaded_batch, prnc_type: str = None):
+    mdjlog = get_logger(loaded_batch['dp_name'])
+    try:
+        data_doc_type, df, grntr_cc_df, ndx_col = 'guarantors', None, None, 'account_no'
+
+        data_size = int(loaded_batch[data_doc_type])
+        rounds, size_done = data_size // split_var + 1, 0
+        crounds, size2use = 1 if rounds is (0 or 1) else rounds - 1, round(data_size / rounds)
+        grntr_args = (crounds, data_size, dpid, grntr_cc_df, prnc_type, loaded_batch, mdjlog, ndx_col, rounds,
+                      size2use, size_done,)
+        df = df_rounds(grntr_args) if (data_size > split_var
+                                       ) else df_round(df, dpid, loaded_batch, mdjlog, ndx_col, size2use, prnc_type)
+
+        grntr_ndx_flds = ['cycle_ver', 'dpid', 'account_no', 'grntr_type', 'biz_name', 'biz_reg_no',
+            'last_name', 'first_name', 'national_id_no', 'drivin_license_no', 'bvn', 'i_pass_no', ]
+        re_ndx_flds(df, grntr_ndx_flds)
+        df.fillna('', inplace=True)
+        df.loc[:, '_id'] = df[grntr_ndx_flds].apply(lambda x: prep_grntr_id(x), axis=1)
+        df.set_index('_id', inplace=True)
+        return True, df
+    except Exception as e:
+        mdjlog.error(e)
+    return False, None

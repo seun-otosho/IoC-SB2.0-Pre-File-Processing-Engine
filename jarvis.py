@@ -270,9 +270,8 @@ def handle_individual_data(dp_name, load3Db, mdjlog, ndvdl, ndvdl_df, ndvdlfac, 
             # ndvdlfac2df = ppns(fac_vals, ndvdlfac_df, load3Dbatch, True)
             # xcpxn_rex(ndvdlfac2df, ndvdl2df, 'individual', load3Dbatch)
             # todo del fac_df, ndvdl_df, ndvdlfac_df
-            mdjlog.info(
-                "\nindividual facility counts is {}\nindividual subject count is {}".format(ndvdlfac2df.shape[0],
-                                                                                            ndvdl2df.shape[0]))
+            mdjlog.info(f"""\nindividual facility counts is {ndvdlfac2df.shape[0]}
+                individual subject count is {ndvdl2df.shape[0]}""")
             datCat = 'con'
             ctgry_dtls, dp_meta = g_meta(datCat, dp_name, load3Db)
             syndifiles = syndic8data(ndvdlfac2df, ndvdl2df, load3Db, ctgry_dtls, datCat, dp_meta, b2u, chunk_mode)
@@ -304,9 +303,8 @@ def handle_corporate_data(dp_name, load3Db, mdjlog, corp, corp_df, corpfac, corp
             # corpfac2df = ppns(fac_vals, corpfac_df, load3Dbatch, True)
             # todo R3Visit xcpxn_rex(corpfac2df, corp2df, 'corporate', load3Dbatch)
             # todo del corp_df, corpfac_df, fac_df
-            mdjlog.info(
-                "\ncorporate facility counts is {}\ncorporate subject count is {}".format(corpfac2df.shape[0],
-                                                                                          corp2df.shape[0]))
+            mdjlog.info(f"""\n\t\t\tcorporate facility counts is {corpfac2df.shape[0]}
+            corporate subject count is {corp2df.shape[0]}""")
             datCat = 'com'
             ctgry_dtls, dp_meta = g_meta(datCat, dp_name, load3Db)
             syndifiles = syndic8data(corpfac2df, corp2df, load3Db, ctgry_dtls, datCat, dp_meta, b2u, chunk_mode)  #:

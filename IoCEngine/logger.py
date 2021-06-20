@@ -36,7 +36,7 @@ dcrtd_frmtr = Formatter('%(process)s - %(thread)s @ %(asctime)s {%(name)s:%(line
                                 '%(func_name)30s() ~> %(funcName)s()} %(levelname)s - %(message)s')
 
 
-def get_logger(logger_name=None, level=level, mini=False, funcname=None, func_name=None):
+def get_logger(logger_name=None, level=level, mini=False, funcname=True, func_name=None):
     global loggers, dcrtd_frmtr
     if loggers.get(logger_name):
         return loggers.get(logger_name)

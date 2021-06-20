@@ -15,16 +15,12 @@ from importlib import reload
 
 from subprocess import call
 
-import pyfiglet
-
 from IoCEngine import drop_zone
 from IoCEngine.celeryio import app
-from IoCEngine.commons import count_down, std_out, dp_meta_data
+from IoCEngine.commons import count_down, std_out, dp_meta_data, fig_str
 from IoCEngine.logger import get_logger as logger
 from IoCEngine.utils.file import dict_file, xtrct_file_details, DataFiles
 from jarvis import route_file, route_filed_data
-
-from figs import font2u
 
 # from pyfiglet import Figlet
 # f = Figlet(font='slant', width=128)
@@ -47,18 +43,6 @@ mdjlog = logger('jarvis')
 #  #      #  #     #  #
 # ###  #   ##   #   ##   #
 # """
-
-def fig_str(str2fig: str = None):
-    str2fig = """Internet
-of Credit
-,   IoC""" if str2fig is None else str2fig
-    fig_font = font2u()
-    figletstr = pyfiglet.figlet_format(str2fig, font=fig_font)
-    return f"""
-#!/IJN
-{fig_font=}
-{figletstr}
-"""
 
 
 def right_now():

@@ -1,4 +1,4 @@
-# import motor
+
 import json
 from datetime import datetime
 from numbers import Real
@@ -11,7 +11,7 @@ from IoCEngine.SHU.amounts import float_numbers
 from IoCEngine.SHU.trans4mas import fields2date, normalize_amts
 from IoCEngine.celeryio import app
 from IoCEngine.commons import (
-    cdt_udf_modes, cf, count_down, cs, data_type_dict, fs, getID, ns, submission_type_dict, gs, ps
+    cdt_udf_modes, cf, count_down, cs, data_type_dict, fs, getID, ns, submission_type_dict, gs, ps, re_ndx_flds
 )
 from IoCEngine.config.pilot import es, es_i
 from IoCEngine.logger import get_logger, module_logger
@@ -19,9 +19,6 @@ from IoCEngine.utils.data_modes import *
 from IoCEngine.utils.file import (pym_db, DataBatchProcess, DataFiles)
 from utilities.models import ColumnMapping, InMode, IoCField
 
-# from pymongo import UpdateOne
-# from pymongo.errors import BulkWriteError
-# from tornado import gen
 
 # dbhs = '172.16.2.23'
 dbn = 'IoC'
@@ -30,6 +27,7 @@ log_txt = module_logger()
 logger = get_logger(log_txt, funcname=True)
 logger.info('test')
 
+ps0, ps1, psa, xtr_cols = prnc_cols()
 
 @app.task(name='route_df')
 def route_df(data_tupl):
@@ -180,6 +178,7 @@ def upd8col_mappings(mdjlogger, incols, ioc_cols, in_mod):
 
 def prep_grntr_id(args):
     if all(arg.strip() in ('', None,) for arg in args[4:]):
+        logger.info(f"{args[4:]=}")
         return None
     cycle_ver, dpid, account_no, grntr_type = args[:4]
     biz_name, biz_reg_no = (i.strip() for i in args[4:6])
@@ -199,30 +198,29 @@ def prep_grntr_id(args):
             _id = f"{id}-C-{biz_name}"
             logger.info(f"{_id=}")
             return f"{_id}-{cycle_ver}"
-    else:
-        if bvn not in ('', None):
-            _id = f"{id}-B-{bvn}"
-            logger.info(f"{_id=}")
-            return f"{_id}-{cycle_ver}"
-        if i_pass_no not in ('', None):
-            _id = f"{id}-I-{i_pass_no}"
-            logger.info(f"{_id=}")
-            return f"{_id}-{cycle_ver}"
-        if drivin_license_no not in ('', None):
-            _id = f"{id}-D-{drivin_license_no}"
-            logger.info(f"{_id=}")
-            return f"{_id}-{cycle_ver}"
-        if national_id_no not in ('', None):
-            _id = f"{id}-N-{national_id_no}"
-            logger.info(f"{_id=}")
-            return f"{_id}-{cycle_ver}"
-        name = last_name if last_name not in ('', None) else first_name
-        logger.info(f"{name=}")
-        name2u = f"{last_name} {first_name}" if last_name not in ('', None) and first_name not in ('', None) else name
-        if name2u not in ('', None):
-            _id = f"{id}-F-{name2u}"
-            logger.info(f"{_id=}")
-            return f"{_id}-{cycle_ver}"
+    if bvn not in ('', None) and int(bvn) != 0:
+        _id = f"{id}-B-{bvn}"
+        logger.info(f"{_id=}")
+        return f"{_id}-{cycle_ver}"
+    if i_pass_no not in ('', None):
+        _id = f"{id}-I-{i_pass_no}"
+        logger.info(f"{_id=}")
+        return f"{_id}-{cycle_ver}"
+    if drivin_license_no not in ('', None):
+        _id = f"{id}-D-{drivin_license_no}"
+        logger.info(f"{_id=}")
+        return f"{_id}-{cycle_ver}"
+    if national_id_no not in ('', None):
+        _id = f"{id}-N-{national_id_no}"
+        logger.info(f"{_id=}")
+        return f"{_id}-{cycle_ver}"
+    name = last_name if last_name not in ('', None) else first_name
+    logger.info(f"{name=}")
+    name2u = f"{last_name} {first_name}" if last_name not in ('', None) and first_name not in ('', None) else name
+    if name2u not in ('', None):
+        _id = f"{id}-F-{name2u}"
+        logger.info(f"{_id=}")
+        return f"{_id}-{cycle_ver}"
 
 
 def grntr_type_check(grntr_type: str) -> str:
@@ -238,7 +236,7 @@ def prep_prnc_id(args):
         {last_name=}, {first_name=}, {national_id_no=}, {drivin_license_no=}, {bvn=}, {i_pass_no=}"""
     )
     id = f"{dpid}-{cust_id}"
-    if bvn not in ('', None):
+    if bvn not in ('', None) and int(bvn) != 0:
         _id = f"{id}-B-{bvn}"
         logger.info(f"{_id=}")
         return f"{_id}-{cycle_ver}"
@@ -284,7 +282,6 @@ def stream_grntr(_type: str, index_col: str, df: pd.DataFrame()):
 
 
 def stream_prnc(_type: str, index_col: str, df: pd.DataFrame()):
-    ps0, ps1, psa, xtr_cols = prnc_cols()
     pdf0 = df[ps0 + xtr_cols]
     # for fld in psa:
     for fld in [f for f in psa if f not in df.columns]:
@@ -297,7 +294,7 @@ def stream_prnc(_type: str, index_col: str, df: pd.DataFrame()):
     pdf = pdf[~pdf['_id'].isna()]
     pdf.fillna('', inplace=True)
     pdf.set_index('_id', inplace=True)
-    sub, typ = 'corporate', 'officer'
+    sub, typ = 'principal', 'officer'
     for ii in pdf.itertuples():
         i = 0
         try:
@@ -311,23 +308,11 @@ def stream_from(d, i, sub, typ):
     if not i % 35710: count_down(None, 5)
     d["submission"], d["type"] = sub if sub else d["submission"], typ if typ else d["type"]
     d["cycle_ver"] = int(d["cycle_ver"])
-    d["_id"], d["cy_dp"] = d['Index'], f'{d["cycle_ver"]}-{d["dpid"]}'
+    d["_id"], d["cy_dp"], d["sub_type"] = d['Index'], f'{d["cycle_ver"]}-{d["dpid"]}', f'{d["submission"]}-{d["type"]}'
     del d['Index']
     d = {i: d[i] for i in d if d[i] not in ('', 'none', None,) and i != 'ndx'}
-    d["_index"], d["_type"], d['sub_cy'] = es_i, 'submissions', datetime.now()
+    d["_index"], d['sub_cy'] = es_i, datetime.now()  # d["_type"] ='submissions'
     yield d
-
-
-def prnc_cols():
-    ps0 = ['cust_id', 'last_name', 'first_name', 'middle_name', 'birth_date', 'gender',
-           'pri_addr_line1', 'pri_addr_line2', 'pri_addr_city_lga', 'pri_addr_state', 'pri_addr_country',
-           'national_id_no', 'drivin_license_no', 'bvn', 'i_pass_no', 'phone_no', 'e_mail_addr', 'psxn_in_biz', ]
-    ps1 = ['cust_id', 'last_name1', 'first_name1', 'middle_name1', 'birth_date1', 'gender1',
-           'pri_addr_line11', 'pri_addr_line21', 'pri_addr_city_lga1', 'pri_addr_state1', 'pri_addr_country1',
-           'national_id_no1', 'drivin_license_no1', 'bvn1', 'i_pass_no1', 'phone_no1', 'e_mail_addr1', 'psxn_in_biz1', ]
-    psa = ['phone_no2', 'sec_addr_line', 'sec_addr_city_lga', 'sec_addr_state', 'tax_id', 'pic_file_path', ]
-    xtr_cols = ['batch_no', 'cycle_ver', 'dpid', 'status', 'dp_name', 'data_file', ]
-    return ps0, ps1, psa, xtr_cols
 
 
 def prep_sngl_col_id(args):
@@ -341,9 +326,8 @@ def prep_sngl_col_id(args):
 
 
 def stream_df(_type, index_col, df):
-    i = 0
-    for fld in [f for f in ('cust_id', 'account_no', index_col, ) if f not in df]:
-        df.loc[:, fld] = None
+    i, ndx_flds = 0, ('cust_id', 'account_no', index_col, )
+    re_ndx_flds(df, ndx_flds)
     df.loc[:, '_id'] = df[['dpid', index_col, 'cust_id', 'account_no', 'cycle_ver', ]].apply(
         lambda x: prep_sngl_col_id(x), axis=1)
     df = df[~df[index_col].isin(['', None, ])]
@@ -378,8 +362,8 @@ def data2col(args, df):
         if None in df.columns:
             df = df[[c for c in df.columns if c != None]]
         df = df[[c for c in df.columns if 'unnamed' not in c.lower()]]
-        df.columns, dpid, cycle_ver = cols, data_tpl[0]['dpid'], data_tpl[0]['cycle_ver']
-        #
+        df.columns = ps0 + xtr_cols if datatype in ps and len(df.columns) == len(ps0 + xtr_cols) else cols
+        dpid, cycle_ver = data_tpl[0]['dpid'], data_tpl[0]['cycle_ver']
         data_batch_info['dp_name'] = dp_name
         data_batch_info['dpid'], data_batch_info['cycle_ver'], data_batch_info['file_name'] = dpid, cycle_ver, file_name
         data_batch_info['in_mod'], data_batch_info['out_mod'] = data_tpl[0]['in_mod'], data_tpl[0]['out_mod']
@@ -388,24 +372,25 @@ def data2col(args, df):
         df.loc[:, 'submission'], df.loc[:, 'type'] = submission_type_dict[datatype], data_type_dict[datatype]
 
         if data_tpl[0]['in_mod'] in ('cdt',):
-            sf = cs + ns + ps
+            dups, pri_dt, sf = 0, cs + fs + ns, cs + ns
             ndx = 'cust_id' if datatype in sf else 'account_no'
-            ndx = ['cust_id', 'last_name', 'first_name'] if datatype in ps else ndx
-            dups_df = df[df.duplicated(subset=ndx, keep='first')]
-            mdjlogger.info("{} {}".format(datatype, ndx))
-            ndx_nunique = df[ndx].nunique()
-            dups = dups_df.shape[0]
+            if datatype in pri_dt:
+                dups_df = df[df.duplicated(subset=ndx, keep='first')]
+                mdjlogger.info(f"{datatype} {ndx}")
+                ndx_nunique = df[ndx].nunique()
+                dups = dups_df.shape[0]
             if dups > 0:
                 mdjlogger.warn(f'dropping {dups} duplicates from {df.shape[0]} to have {ndx_nunique} unique records')
                 # todo log duplicates before dropping 'em. ..
                 if datatype not in gs + ps:
                     df.drop_duplicates(subset=ndx if isinstance(ndx, list) else [ndx], keep='last', inplace=True)
             else:
-                mdjlogger.info("no duplicates")
+                msg = "no duplicates" if datatype in pri_dt else "Duplicates Not Applicable"
+                mdjlogger.info(msg)
+
         mdjlogger.info("checking counts in d2c {} | data type is {}".format(df.shape[0], data_tpl[1]))
 
         df.fillna('', inplace=True)
-
         data_type = indexDF(data_store, data_tpl, df, dp_name, mdjlogger)
 
         pro_stat = 'Loaded'
@@ -473,7 +458,7 @@ def indexDF(data_store, data_tpl, df, dp_name, mdjlogger):
         df.loc[:, 'account_no'] = df.account_no.apply(lambda x: str(x).replace("'", '').strip())
     # df.fillna('', inplace=True)
 
-    if not isinstance(ndx, list):
+    if data_tpl[1] in sf + fs:
         df.set_index(ndx, inplace=True)
         df.loc[:, ndx] = df.index
 

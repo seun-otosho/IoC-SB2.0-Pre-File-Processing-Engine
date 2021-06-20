@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 
-from concurrent import futures
 import inspect
 import multiprocessing as mp
 import os
@@ -13,14 +12,16 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 from elasticsearch import helpers
-from auto_bots import upd8batch
+
 from IoCEngine import xtrcxn_area
-from IoCEngine.commons import (data_type_dict, iff_sb2_modes, cdt_udf_modes, count_down, get_logger, mk_dir, right_now,
-                               std_out, submission_type_dict, time_t)
+from IoCEngine.commons import (fig_str, iff_sb2_modes, count_down, get_logger, mk_dir,
+                               right_now, gs, ps, std_out, time_t)
 from IoCEngine.config.pilot import chunk_size, es, es_i, es_ii, mpcores
 from IoCEngine.utils.data_modes import iff
-# from IoCEngine.utils.db2data import upd8DFstatus
+from IoCEngine.utils.db2data import grntr_data, prnc_data
+
 from IoCEngine.utils.file import DataFiles, SB2FileInfo
+from auto_bots import upd8batch
 
 a, b, c = 1, 2, 3
 
@@ -72,18 +73,15 @@ def fix_fac_missing(crdt_data, meta_data):
 
 
 def syndidata(lz):
-    crdt_data, sbjt_data, meta_data, dp_meta, datCat, hdr, sb2file = lz[0], lz[1], lz[2], lz[3], lz[4], lz[5], lz[6]
+    crdt_data, sbjt_data, meta_data, dp_meta, datCat, hdr, sb2file, syndi_dir = lz[:8]
     b2u, mdjlog, dpid, syndicaxn_complt = lz[7], get_logger(meta_data['dp_name']), meta_data['dpid'], False
-    syndi_dir = lz[8]
+
     try:
-        if lz[9] is not None:
-            chunk_mode = lz[9]
-        else:
-            chunk_mode = None
+        chunk_mode = lz[9] if lz[9] is not None else None
     except:
         chunk_mode = None
     try:
-        dp_name = meta_data['dp_name'].split('_')[0].lower()  # , syndi_data_list, []
+        dp_name = meta_data['dp_name'].lower()  # , syndi_data_list, []
         institution_cat, submxn_pt = dp_meta[dp_name][2], dp_meta[dp_name][1]
         # file_dtls = DataFiles.objects(dpid=meta_data['dpid'], cycle_ver=meta_data['cycle_ver'], status='Loaded').first()
         meta_data.reload()
@@ -91,6 +89,18 @@ def syndidata(lz):
         loaded_batch = meta_data
         sbjt_data.fillna('', inplace=True)
         crdt_data.fillna('', inplace=True)
+
+        loaded_gs = [sgmnt for sgmnt in [b for b in b2u] if sgmnt.segments[0] in gs or gs[0] in sgmnt][0]
+        grntr, gs_data = grntr_data(meta_data['dpid'], loaded_gs, gs[0])
+        gs_data = gs_data[gs_data.account_no.isin(crdt_data.account_no)]
+        grntr = not gs_data.empty
+
+        if datCat == 'com':
+            loaded_ps = [sgmnt for sgmnt in [b for b in b2u] if sgmnt.segments[0] in ps or ps[0] in sgmnt][0]
+            prnc, ps_data = prnc_data(meta_data['dpid'], loaded_ps, ps[0])
+            ps_data = ps_data[ps_data.cust_id.isin(sbjt_data.cust_id)]
+            prnc = not ps_data.empty
+
         try:
             iff_fac_cols, iff_sbjt_cols = None, None
             if loaded_batch['out_mod'] == 'cmb':
@@ -127,37 +137,13 @@ def syndidata(lz):
             mk_dir(syndi_dir)
             syndi_iter, syndi_data_list = [], []
             syndi_complt, iocnow, syndi_crdt_data, syndi_sbjt_data = None, None, None, None
-            # # todo remove later
-            # if crdt_data.shape[0] > 5000:
-            #     crdt_syndi_chunks = np.array_split(crdt_data, crdt_data.shape[0] // 5000)
-            #
-            #     for crdt_s_chunk in crdt_syndi_chunks:
-            #         if meta_data['in_mod'] == 'cdt':
-            #             try:
-            #                 sbjt_s_data = sbjt_data[sbjt_data.cust_id.isin(crdt_s_chunk.cust_id)]
-            #             except Exception as e:
-            #                 mdjlog.error("{}".format(e))
-            #         elif meta_data['in_mod'] in ('cmb', 'fandl', 'iff', 'mfi', 'phed', 'pmi',):
-            #             try:
-            #                 sbjt_s_data = sbjt_data[sbjt_data.account_no.isin(crdt_s_chunk.account_no)]
-            #             except Exception as e:
-            #                 mdjlog.error("{}".format(e))
-            #         if sbjt_s_data is not None or not sbjt_s_data.empty:
-            #             syndi_iter.append(
-            #                 (crdt_s_chunk, fac_sgmnt, iff_fac_cols, iff_sbjt_cols, meta_data, sb2file, sbjt_s_data,
-            #                  sbjt_sgmnt))
-            #         mdjlog.info("\nCrdt {} \nSbjt {} \nfor {}".format(crdt_s_chunk.shape, sbjt_s_data.shape, sb2file))
-            #     # with futures.ProcessPoolExecutor() as executor:
-            #     with futures.ThreadPoolExecutor(max_workers=5) as executor:
-            #         syndi_rez = executor.map(syndi_pairs, syndi_iter)
-            # else:
-            #     todo remove later
 
             # mdjlog.info("Pairing data for Syndicated file: {} written @ {}".format(sb2file, right_now()))
-            syndi_rez = [syndi_pairs((
+            syndi_pair_args = (
                 crdt_data, fac_sgmnt, iff_fac_cols, iff_sbjt_cols, meta_data, sb2file, sbjt_data, sbjt_sgmnt, datCat,
-                 syndi_dir
-            ))]
+                syndi_dir
+            )
+            syndi_rez = [syndi_pairs(syndi_pair_args)]
 
             for rez in syndi_rez:
                 dataCount, syndi_data_list = dataCount + rez[0], syndi_data_list + rez[1]
@@ -167,8 +153,7 @@ def syndidata(lz):
             mdjlog.info('\n' + '\n' + '#' * 128)
             structures = int(dataCount)
             sstructures = str(int(structures))
-            mdjlog.info("\n\n{} {} structures processed from {} @ {}".format(sstructures, datCat.upper(), meta_data,
-                                                                             right_now()))
+            mdjlog.info(f"\n\n{sstructures} {datCat.upper()} structures processed from {meta_data} @ {right_now()}")
             footer = '|'.join(['TLTL', dpid, submxn_pt, sstructures])
             # sb2file_handler.write(footer)
             syndi_data_list.append(footer)
@@ -214,7 +199,7 @@ def syndidata(lz):
             if chunk_mode is None:
                 upd8batch(loaded_batch, b2u)  # meta_data
             if syndicaxn_complt:
-                mdjlog.info("Syndication Completed Successfully idx: {} and crdt data: {}".format(idx, crdt_data.shape))
+                mdjlog.info(f"Syndication Completed Successfully : {idx=} and | {crdt_data.shape=}")
             print('#Kingdom ThinGz')
             return
         except Exception as e:
@@ -226,9 +211,8 @@ def syndidata(lz):
 
 
 def syndi_pairs(targs):
-    crdt_data, fac_sgmnt, iff_fac_cols, iff_sbjt_cols, meta_data, sb2file, sbjt_data, sbjt_sgmnt, dataCat, iocnow = \
-        targs[0], targs[1], targs[2], targs[3], targs[4], targs[5], targs[6], targs[7], targs[8], []
-    syndi_dir = targs[9]
+    crdt_data, fac_sgmnt, iff_fac_cols, iff_sbjt_cols, meta_data, sb2file, sbjt_data, sbjt_sgmnt, dataCat = targs[:9]
+    # syndi_dir, iocnow = targs[9], []
     dpid, dp_name, syndicaxn_complt, syndi_data_list = meta_data['dpid'], meta_data['dp_name'], None, []
     mdjlog, dataCount, cust_id, ac_no, cycle_ver = get_logger(dp_name), 0, None, None, meta_data['cycle_ver']
     # dataCatCheck = ('con', 'mfcon', 'mgcon')
@@ -644,7 +628,7 @@ def log_check(total, running):
 
 def log_syndi_pro(crdt_shape, dataCount, mdjlog, sb2file):
     if log_check(crdt_shape, dataCount):
-        mdjlog.info("PairinG data file {} & counting @#{}_of_{} @{}\n".format(sb2file, dataCount, crdt_shape, time_t()))
+        mdjlog.info(f"PairinG data file {sb2file} & counting @#{dataCount} of {crdt_shape} @{time_t()}\n")
 
 
 def upd8sjdt_recs(largs, sbdt_data):
@@ -708,8 +692,8 @@ def syndic8data(crdt_data, sbjt_data, meta_data, ctgry_dtls, datCat, dp_meta, b2
                      runnin_chunks_list, sbjt_data, sgmnt, submxn_pt, b2u, syndi_dir, chunk_mode)
             # p = mp.Process(target=syndi_chunk_pro, args=chnk_args, )
             # p.start()
-            multi_pro(syndi_chunk_pro, chnk_args)
-            # syndi_chunk_pro(chnk_args)  # alt
+            # multi_pro(syndi_chunk_pro, chnk_args)
+            syndi_chunk_pro(chnk_args)  # alt
 
         else:
             try:
@@ -722,10 +706,11 @@ def syndic8data(crdt_data, sbjt_data, meta_data, ctgry_dtls, datCat, dp_meta, b2
             args = (crdt_data, sbjt_data, meta_data, dp_meta, datCat, data_list_hdr, data_list_fn, b2u, syndi_dir,
                 chunk_mode)
             #
-            multi_pro(syndidata, [args])
-            # syndidata(args)  # alt
+            # multi_pro(syndidata, [args])
+            syndidata(args)  # alt
             #
         print('\n#YHVH')
+        mdjlog.info(fig_str("#YHVH"))
         return
 
     except Exception as e:

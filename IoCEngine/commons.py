@@ -10,6 +10,8 @@ import time
 from datetime import datetime
 from random import randint
 
+import pyfiglet
+
 from IoCEngine import xtrcxn_area
 from IoCEngine.logger import get_logger
 from IoCEngine.models import CtgryCode, DataProvider
@@ -19,6 +21,7 @@ from IoCEngine.models import CtgryCode, DataProvider
 # from commons import mk_dir
 
 # mpcores = multiprocessing.cpu_count() - 1
+from figs import font2u
 
 
 def right_now():
@@ -144,21 +147,24 @@ submission_type_dict = {
     'ndvdl': 'individual',
     'ndvdlfac': 'individual',
     'grntr': 'combined',
-    'prnc': 'corporate',
+    'prnc': 'principal',
 }
 
 data_type_dict = {
     'com': 'subject',
     'comm': 'subject',
-    'commfac': 'facility',
+    'corp': 'subject',
+
     'con': 'subject',
     'cons': 'subject',
-    'consfac': 'facility',
-    'corp': 'subject',
+    'ndvdl': 'subject',
+
+    'commfac': 'facility',
     'corpfac': 'facility',
     'fac': 'facility',
-    'ndvdl': 'subject',
+    'consfac': 'facility',
     'ndvdlfac': 'facility',
+
     'grntr': 'guarantor',
     'prnc': 'officer',
 }
@@ -204,3 +210,21 @@ def dp_meta_data(dp_code_name=None):
                 data_prvdr.dpid, data_prvdr.sbmxn_pt, data_prvdr.ctgry, data_prvdr.day_first) for
             data_prvdr in data_prvdrs
         }
+
+
+def re_ndx_flds(df, ndx_flds):
+    for fld in [f for f in ndx_flds if f not in df]:
+        df.loc[:, fld] = None
+
+
+def fig_str(str2fig: str = None):
+    str2fig = """Internet
+of Credit
+,   IoC""" if not str2fig else str2fig
+    fig_font = font2u()
+    figletstr = pyfiglet.figlet_format(str2fig, font=fig_font)
+    return f"""
+#!/IJN
+{fig_font=}
+{figletstr}
+"""
