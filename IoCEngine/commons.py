@@ -212,9 +212,9 @@ def dp_meta_data(dp_code_name=None):
         }
 
 
-def re_ndx_flds(df, ndx_flds):
+def re_ndx_flds(df, ndx_flds, fillvar = None):
     for fld in [f for f in ndx_flds if f not in df]:
-        df.loc[:, fld] = None
+        df.loc[:, fld] = fillvar if fillvar else None
 
 
 def fig_str(str2fig: str = None):

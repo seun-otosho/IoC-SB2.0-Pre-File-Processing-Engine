@@ -1,7 +1,7 @@
 # coding: utf-8
 
 
-def cdt():
+def cdt() -> dict:
     d = {
         'fac': (
             'cust_id', 'account_no', 'acct_stat', 'd8_acct_stat', 'd8_disbursed', 'approved_amt', 'disbursed_amt',
@@ -58,69 +58,50 @@ def cdt():
     return d
 
 
-def iff():
+def iff() -> dict:
     d = {
         'cmb': {
             'corp': (
                 'branch_code', 'account_no', 'cust_id', 'prev_cust_id', 'biz_reg_no', 'incorp_date', 'prev_biz_reg_no',
                 'incorp_cert', 'soc_reg_no', 'tax_id', 'iss_auth1', 'id_code1', 'id_code1d8xpry', 'iss_auth2',
-                'id_code2',
-                'id_code2d8xpry', 'is_sme', 'biz_corp_type', 'biz_name', 'shrt_biz_name', 'prev_reg_biz_name',
-                'prev_shrt_biz_name',
-                'biz_category', 'biz_category2', 'biz_category3', 'pri_addr_typ', 'pri_addr_line1', 'pri_addr_line2',
-                'pri_addr_line3', 'pri_addr_city_lga', 'pri_addr_state', 'pri_addr_post_code', 'pri_addr_country',
-                'sec_addr_typ',
-                'sec_addr_line1', 'sec_addr_line2', 'sec_addr_line3', 'sec_addr_city_lga', 'sec_addr_state',
-                'sec_addr_post_code',
+                'id_code2', 'id_code2d8xpry', 'is_sme', 'biz_corp_type', 'biz_name', 'shrt_biz_name',
+                'prev_reg_biz_name', 'prev_shrt_biz_name', 'biz_category', 'biz_category2', 'biz_category3',
+                'pri_addr_typ', 'pri_addr_line1', 'pri_addr_line2', 'pri_addr_line3', 'pri_addr_city_lga',
+                'pri_addr_state', 'pri_addr_post_code', 'pri_addr_country', 'sec_addr_typ', 'sec_addr_line1',
+                'sec_addr_line2', 'sec_addr_line3', 'sec_addr_city_lga', 'sec_addr_state', 'sec_addr_post_code',
                 'sec_addr_country', 'last_fin_yr_turnover', 'ttl_asset_val', 'no_of_emplye', 'area_code', 'phone_no',
-                'fax_no',
-                'e_mail_addr', 'url'),
+                'fax_no', 'e_mail_addr', 'url'),
             'corpfac': (
                 'branch_code', 'prev_branch_id', 'account_no', 'prev_acct_no', 'consent_stat', 'consent_d8from',
-                'consent_d8to',
-                'facility_type', 'facility_purpose', 'ownership', 'disbursed_amt', 'd8_approved', 'currency', 'int_type',
-                'int_rate',
-                'd8_disbursed', 'maturity_date', 'int_repay_freq', 'repay_freq', 'int_instal_count', 'instal_count',
-                'int_instal_amt', 'instal_amt', 'highest_crdt_amt', 'outstanding_bal', 'int_last_paid_amt',
-                'last_paid_amt',
-                'int_last_paid_date', 'last_paid_date', 'int_overdue_days', 'overdue_days', 'int_overdue_amt',
-                'overdue_amt',
-                'int_outstanding_amt', 'outstanding_amt', 'int_outstanding_amt_count', 'outstanding_amt_count',
-                'asset_class',
-                'acct_stat', 'amend_date', 'wrttn_off_amt', 'wrttn_off_rsn', 'acct_clsd_date', 'acct_cls_rsn',
-                'secure_stat', 'grnt_cov', 'legal_stat', 'trxn_typ_cod', 'dspt_id'),
+                'consent_d8to', 'facility_type', 'facility_purpose', 'ownership', 'disbursed_amt', 'd8_approved',
+                'currency', 'int_type', 'int_rate', 'd8_disbursed', 'maturity_date', 'int_repay_freq', 'repay_freq',
+                'int_instal_count', 'instal_count', 'int_instal_amt', 'instal_amt', 'highest_crdt_amt',
+                'outstanding_bal', 'int_last_paid_amt', 'last_paid_amt', 'int_last_paid_date', 'last_paid_date',
+                'int_overdue_days', 'overdue_days', 'int_overdue_amt', 'overdue_amt', 'int_outstanding_amt',
+                'outstanding_amt', 'int_outstanding_amt_count', 'outstanding_amt_count', 'asset_class', 'acct_stat',
+                'amend_date', 'wrttn_off_amt', 'wrttn_off_rsn', 'acct_clsd_date', 'acct_cls_rsn', 'secure_stat',
+                'grnt_cov', 'legal_stat', 'trxn_typ_cod', 'dspt_id'),
             'ndvdl': (
                 'branch_code', 'account_no', 'cust_id', 'prev_cust_id', 'nationality', 'national_id_no', 'i_pass_no',
                 'i_pass_expiry', 'drivin_license_no', 'tax_id', 'iss_auth1', 'bvn', 'bvn_d8xpry', 'iss_auth2',
-                'id_code2',
-                'id_code2d8xpry', 'last_name', 'first_name', 'middle_name', 'full_name', 'alias', 'prev_full_name',
-                'fathers_name',
-                'mothers_maiden_name', 'pri_addr_typ', 'pri_addr_line1', 'pri_addr_line2', 'pri_addr_line3',
-                'pri_addr_city_lga',
-                'pri_addr_state', 'pri_addr_post_code', 'pri_addr_country', 'sec_addr_typ', 'sec_addr_line1',
-                'sec_addr_line2',
-                'sec_addr_line3', 'sec_addr_city_lga', 'sec_addr_state', 'sec_addr_post_code', 'sec_addr_country',
-                'employ_stat',
+                'id_code2', 'id_code2d8xpry', 'last_name', 'first_name', 'middle_name', 'full_name', 'alias',
+                'prev_full_name', 'fathers_name', 'mothers_maiden_name', 'pri_addr_typ', 'pri_addr_line1',
+                'pri_addr_line2', 'pri_addr_line3', 'pri_addr_city_lga', 'pri_addr_state', 'pri_addr_post_code',
+                'pri_addr_country', 'sec_addr_typ', 'sec_addr_line1', 'sec_addr_line2', 'sec_addr_line3',
+                'sec_addr_city_lga', 'sec_addr_state', 'sec_addr_post_code', 'sec_addr_country', 'employ_stat',
                 'occpaxn', 'employr_name', 'employr_addr_line1', 'emply_posxn', 'annl_sal', 'mnths_w_crrnt_emplyr',
-                'biz_name',
-                'biz_reg_no', 'biz_d8reg', 'area_code', 'work_phone', 'mobile_no', 'fax_no', 'e_mail_addr', 'url',
-                'birth_date',
-                'birth_place', 'gender', 'mrtl_stat', 'spouse_surname'),
+                'biz_name', 'biz_reg_no', 'biz_d8reg', 'area_code', 'work_phone', 'mobile_no', 'fax_no', 'e_mail_addr',
+                'url', 'birth_date', 'birth_place', 'gender', 'mrtl_stat', 'spouse_surname'),
             'ndvdlfac': (
                 'branch_code', 'prev_branch_code', 'account_no', 'prev_acct_no', 'consent_stat', 'consent_d8from',
-                'consent_d8to',
-                'facility_type', 'facility_purpose', 'ownership', 'disbursed_amt', 'd8_approved', 'currency', 'int_type',
-                'int_rate',
-                'd8_disbursed', 'maturity_date', 'int_repay_freq', 'repay_freq', 'int_instal_count', 'instal_count',
-                'int_instal_amt', 'instal_amt', 'highest_crdt_amt', 'outstanding_bal', 'int_last_paid_amt',
-                'last_paid_amt',
-                'int_last_paid_date', 'last_paid_date', 'int_overdue_days', 'overdue_days', 'int_overdue_amt',
-                'overdue_amt',
-                'int_outstanding_amt', 'outstanding_amt', 'int_outstanding_amt_count', 'outstanding_amt_count',
-                'asset_class',
+                'consent_d8to', 'facility_type', 'facility_purpose', 'ownership', 'disbursed_amt', 'd8_approved',
+                'currency', 'int_type', 'int_rate', 'd8_disbursed', 'maturity_date', 'int_repay_freq', 'repay_freq',
+                'int_instal_count', 'instal_count', 'int_instal_amt', 'instal_amt', 'highest_crdt_amt',
+                'outstanding_bal', 'int_last_paid_amt', 'last_paid_amt', 'int_last_paid_date', 'last_paid_date',
+                'int_overdue_days', 'overdue_days', 'int_overdue_amt', 'overdue_amt', 'int_outstanding_amt',
+                'outstanding_amt', 'int_outstanding_amt_count', 'outstanding_amt_count', 'asset_class',
                 'acct_stat', 'amend_date', 'wrttn_off_amt', 'wrttn_off_rsn', 'acct_clsd_date', 'acct_cls_rsn',
-                'secure_stat',
-                'pri_card_no', 'grnt_cov', 'legal_stat', 'trxn_typ_cod', 'dspt_id'),
+                'secure_stat', 'pri_card_no', 'grnt_cov', 'legal_stat', 'trxn_typ_cod', 'dspt_id'),
             'grntr': (
                 'branch_code', 'account_no',
 
@@ -128,42 +109,14 @@ def iff():
 
                 'national_id_no', 'i_pass_no', 'i_pass_expiry', 'drivin_license_no', 'tax_id',
 
-                'biz_reg_no', 'incorp_date', 'prev_biz_reg_no', 'incorp_cert', 'soc_reg_no', 'biz_tax_id',
+                'biz_reg_no', 'birth_incorp_date', 'prev_biz_reg_no', 'incorp_cert', 'soc_reg_no', 'biz_tax_id',
 
                 'iss_auth1', 'bvn', 'id_code1d8xpry', 'iss_auth2', 'id_code2', 'id_code2d8xpry',
 
-                'last_name', 'middle_name', 'first_name', 'full_name', 'prev_full_name', 'birth_date', 'gender', 'mrtl_stat',
+                'last_name', 'middle_name', 'first_name', 'full_name', 'prev_full_name', 'birth_date', 'gender',
+                'mrtl_stat',
 
                 'biz_name', 'prev_reg_biz_name', 'biz_corp_type', 'biz_category', 'biz_category2',
-
-                'pri_addr_typ', 'pri_addr_line1', 'pri_addr_line2', 'pri_addr_line3', 'pri_addr_city_lga',
-                'pri_addr_state', 'pri_addr_post_code', 'pri_addr_country',
-                'sec_addr_typ', 'sec_addr_line1', 'sec_addr_line2', 'sec_addr_line3', 'sec_addr_city_lga',
-                'sec_addr_state', 'sec_addr_post_code', 'sec_addr_country',
-
-                'area_code', 'phone_no', 'fax_no', 'e_mail_addr', 'url'
-            ),
-            'prnc': (
-                'branch_code', 'account_no', 'cust_id', 'prev_cust_id',
-                'prnc_cust_id', 'prnc_prev_cust_id', 'prnc_type',
-
-                'biz_corp_type', 'psxn_in_biz',
-
-                'pri_addr_country', 'national_id_no', 'i_pass_no', 'i_pass_expiry', 'drivin_license_no', 'tax_id',
-
-                'biz_reg_no', 'incorp_date', 'prev_biz_reg_no', 'incorp_cert', 'soc_reg_no', 'biz_tax_id',
-
-                'pri_addr_country', 'national_id_no', 'i_pass_no', 'i_pass_expiry', 'drivin_license_no', 'tax_id', 
-
-                'biz_reg_no', 'incorp_date', 'prev_biz_reg_no', 'incorp_cert', 'soc_reg_no', 'biz_tax_id',
-
-                'iss_auth1', 'bvn', 'id_code1d8xpry', 'iss_auth2', 'id_code2', 'id_code2d8xpry',
-
-                'last_name', 'middle_name', 'first_name', 'full_name', 'prev_full_name', 'birth_date', 'gender', 'mrtl_stat',
-
-                'biz_name', 'shrt_biz_name', 'prev_reg_biz_name', 'biz_category', 'biz_category2', 'biz_category3',
-
-                'ctrl_pctg',
 
                 'pri_addr_typ', 'pri_addr_line1', 'pri_addr_line2', 'pri_addr_line3', 'pri_addr_city_lga',
                 'pri_addr_state', 'pri_addr_post_code', 'pri_addr_country',
@@ -220,13 +173,14 @@ def iff():
                 'iss_auth1', 'bvn', 'id_code1d8xpry', 'iss_auth2', 'id_code2', 'id_code2d8xpry',
                 'iss_auth3', 'bvn', 'id_code3d8xpry', 'iss_auth4', 'id_code4', 'id_code4d8xpry',
 
-                'biz_reg_no', 'incorp_date', 'prev_biz_reg_no', 'incorp_cert', 'soc_reg_no', 'biz_tax_id',
+                'biz_reg_no', 'birth_incorp_date', 'prev_biz_reg_no', 'incorp_cert', 'soc_reg_no', 'biz_tax_id',
 
                 'national_id_no', 'i_pass_no', 'i_pass_expiry', 'drivin_license_no', 'tax_id',
 
                 'iss_auth1', 'bvn', 'id_code1d8xpry', 'iss_auth2', 'id_code2', 'id_code2d8xpry',
 
-                'last_name', 'middle_name', 'first_name', 'full_name', 'prev_full_name', 'birth_date', 'gender', 'mrtl_stat',
+                'last_name', 'middle_name', 'first_name', 'full_name', 'prev_full_name', 'birth_date', 'gender',
+                'mrtl_stat',
 
                 'biz_name', 'shrt_biz_name', 'prev_reg_biz_name', 'biz_corp_type', 'market_association_name',
                 'market_association_no', 'biz_category', 'biz_category2', 'biz_category3',
@@ -271,33 +225,43 @@ def iff():
                 'penalty',
                 'secure_stat', 'grnt_cov', 'legal_stat', 'trxn_typ_cod', 'dspt_id',
             ),
-            'cons': (
-                'branch_code', 'account_no', 'cust_id', 'prev_cust_id', 'nationality', 'national_id_no', 'i_pass_no',
-                'i_pass_expiry', 'drivin_license_no', 'tax_id', 'iss_auth1', 'bvn', 'bvn_d8xpry', 'iss_auth2',
-                'id_code2',
-                'id_code2d8xpry', 'last_name', 'first_name', 'middle_name', 'full_name', 'alias', 'prev_full_name',
-                'fathers_name',
-                'mothers_maiden_name', 'pri_addr_typ', 'pri_addr_line1', 'pri_addr_line2', 'pri_addr_line3',
-                'pri_addr_city_lga',
-                'pri_addr_state', 'pri_addr_post_code', 'pri_addr_country', 'sec_addr_typ', 'sec_addr_line1',
-                'sec_addr_line2',
-                'sec_addr_line3', 'sec_addr_city_lga', 'sec_addr_state', 'sec_addr_post_code', 'sec_addr_country',
-                'employ_stat',
-                'occpaxn', 'employr_name', 'employr_addr_line1', 'emply_posxn', 'annl_sal', 'mnths_w_crrnt_emplyr',
-                'biz_name',
-                'biz_reg_no', 'biz_d8reg', 'area_code', 'work_phone', 'mobile_no', 'fax_no', 'e_mail_addr', 'url',
-                'birth_date',
-                'birth_place', 'gender', 'mrtl_stat', 'spouse_surname'),
         },
+        'prnc': (
+            'branch_code', 'account_no', 'cust_id', 'prev_cust_id',
+            'prnc_cust_id', 'prnc_prev_cust_id', 'prnc_type',
+
+            'biz_corp_type', 'psxn_in_biz',
+
+            'pri_addr_country', 'national_id_no', 'i_pass_no', 'i_pass_expiry', 'drivin_license_no', 'tax_id',
+
+            'biz_reg_no', 'incorp_date', 'prev_biz_reg_no', 'incorp_cert', 'soc_reg_no', 'biz_tax_id',
+
+            'iss_auth1', 'bvn', 'id_code1d8xpry', 'iss_auth2', 'id_code2', 'id_code2d8xpry',
+
+            'last_name', 'middle_name', 'first_name', 'full_name', 'prev_full_name', 'birth_date', 'gender',
+            'mrtl_stat',
+
+            'biz_name', 'shrt_biz_name', 'prev_reg_biz_name', 'biz_category', 'biz_category2', 'biz_category3',
+
+            'ctrl_pctg',
+
+            'pri_addr_typ', 'pri_addr_line1', 'pri_addr_line2', 'pri_addr_line3', 'pri_addr_city_lga',
+            'pri_addr_state', 'pri_addr_post_code', 'pri_addr_country',
+            'sec_addr_typ', 'sec_addr_line1', 'sec_addr_line2', 'sec_addr_line3', 'sec_addr_city_lga',
+            'sec_addr_state', 'sec_addr_post_code', 'sec_addr_country',
+
+            'area_code', 'phone_no', 'fax_no', 'e_mail_addr', 'url'
+        ),
     }
     d['mfi']['corp'], d['mfi']['ndvdl'] = d['mfi']['comm'], d['mfi']['cons']
     d['mfi']['commfac'] = d['mfi']['consfac'] = d['mfi']['corpfac'] = d['mfi']['ndvdlfac'] = d['mfi']['fac']
     d['pmi']['grntr'] = d['cmb']['grntr']
-    d['pmi']['prnc'] = d['mfi']['prnc'] = d['cmb']['prnc']
+    d['pmi']['cons'] = d['cmb']['ndvdl']
+    # d['pmi']['prnc'] = d['mfi']['prnc'] = d['cmb']['prnc']
     return d
 
 
-def c0mf():
+def c0mf() -> tuple:
     return (
         'account_no', 'cust_id', 'last_name', 'first_name', 'middle_name', 'gender', 'mrtl_stat', 'full_name',
         ' outstanding_bal', ' overdue_amt', 'overdue_days', 'maturity_date', 'currency', 'asset_class', 'acct_stat',
@@ -325,7 +289,7 @@ c1mf = fnco = (
 )
 
 
-def fandl():
+def fandl() -> dict:
     idict = {
         'corp': iff()['cmb']['corp'],
         'ndvdl': iff()['cmb']['ndvdl'],
@@ -342,7 +306,7 @@ def fandl():
     return idict
 
 
-def phed():
+def phed() -> dict:
     return {
         'corpfac': (
             'branch_code', 'prev_branch_id', 'account_no', 'prev_acct_no', 'consent_stat_blnk', 'consent_stat',
@@ -361,7 +325,7 @@ def phed():
     }
 
 
-def min_mndtry():
+def min_mndtry() -> dict:
     d = {
         'comm': (
             'branch_code', 'account_no', 'cust_id', 'biz_name', 'pri_addr_typ', 'pri_addr_line1', 'pri_addr_country',),
@@ -378,10 +342,10 @@ def min_mndtry():
     return d
 
 
-def amnt_fields():
+def amnt_fields() -> tuple:
     f = ('approved_amt', 'disbursed_amt', 'disbursed_amt2date', 'outstanding_bal', 'instal_amt', 'annl_sal', 'int_rate',
          'int_instal_amt', 'instal_amt', 'highest_crdt_amt', 'int_last_paid_amt', 'last_paid_amt', 'int_overdue_amt',
-         'overdue_amt', 'int_outstanding_amt', 'outstanding_amt', 'wrttn_off_amt','cycle_ver',)
+         'overdue_amt', 'int_outstanding_amt', 'outstanding_amt', 'wrttn_off_amt', 'cycle_ver',)
     return f
 
 
@@ -392,7 +356,7 @@ def date_fields():
     f = ('maturity_date', 'litigxn_date', 'int_last_paid_date', 'last_paid_date', 'acct_clsd_date', 'd8_acct_stat',
          'd8_disbursed', 'consent_d8from', 'consent_d8to', 'd8_approved', 'amend_date', 'incorp_date', 'id_code1d8xpry',
          'id_code2d8xpry', 'birth_date', 'i_pass_expiry', 'bvn_d8xpry', 'biz_d8reg', 'birth_incorp_date', 'birth_date1',
-    )
+         )
     return f
 
 

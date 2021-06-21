@@ -3,11 +3,11 @@ from elasticsearch import helpers
 from pandasticsearch import Select
 
 from IoCEngine.commons import (
-    cs, data_type_dict, fs, ns, submission_type_dict, re_ndx_flds
+    cs, data_type_dict, fs, gs, ns, submission_type_dict, re_ndx_flds
 )
 from IoCEngine.config.pilot import chunk_size as split_var, es, es_i
 from IoCEngine.logger import get_logger
-from IoCEngine.utils import prep_grntr_id
+from IoCEngine.utils.data2db import prep_grntr_id
 from IoCEngine.utils.file import DataBatchProcess
 
 mdjlog = get_logger('jarvis')
@@ -68,38 +68,23 @@ def i2df(data_doc_type, data_size, dpid, loaded_batch, ndx_col):
     rez = es.search(index=es_i, doc_type='submissions', body={"query": query}, size=data_size, from_=0)
     
     df = Select.from_dict(rez).to_pandas()
+    df = df if (data_doc_type in gs
+        ) else df[df.sub_type == f"{submission_type_dict[data_doc_type]}-{data_type_dict[data_doc_type]}"]
     if df is not None and not df.empty:
         df.fillna('', inplace=True)
-        # ndx_col = 'account_no' if loaded_batch['in_mod'] in iff_sb2_modes else ndx_col
+
         upd8DFstatus(data_doc_type, df, ndx_col, 'Pick3D')
-    # else:
-    #     if 'fac' in data_doc_type:
-    #         query = es_query('fac', dpid, loaded_batch)
-    #         rez = es.search(index=es_i, doc_type='submissions', body={"query": query}, size=data_size, from_=0)
-    #
-    #         df = Select.from_dict(rez).to_pandas()
-    #         if df is not None and not df.empty:
-    #             df.fillna('', inplace=True)
-    #             upd8DFstatus(data_doc_type, df, ndx_col, 'Pick3D')
+
     return df, rez, data_size
 
 
 def es_query(data_doc_type, dpid, loaded_batch):
     query = {
-    #     "bool": {"must": [{"match": {'cy_dp': f"{int(loaded_batch['cycle_ver'])}-{dpid}"}},
-    #                       # {"match": {'cycle_ver': loaded_batch['cycle_ver']}},
-    #                       # {"match": {'submission': submission_type_dict[data_doc_type]}},
-    #                       {"match": {'type': data_type_dict[data_doc_type]}}]}
-    # } if data_doc_type == 'fac' else {
-        "bool": {"must": [{"match": {"cy_dp": f"{int(loaded_batch['cycle_ver'])}-{dpid}"}},
-                          # {"match": {'dpid': dpid}},
-                          # {"match": {'cycle_ver': loaded_batch['cycle_ver']}},
-                          # {"match": {'status': 'Loaded'}}, # todo
-                          # {"match": {'submission': submission_type_dict[data_doc_type]}},
-                          {"match": {"type": data_type_dict[data_doc_type]}}]}
+        "bool": {"must": [
+            {"match": {"cy_dp": f"{int(loaded_batch['cycle_ver'])}-{dpid}"}},
+            {"match": {"type": data_type_dict[data_doc_type]} if data_doc_type in gs else {
+                "sub_type": f"{submission_type_dict[data_doc_type]}-{data_type_dict[data_doc_type]}"}}]}
     }
-    # mdjlog.info(query)
-    # count_down(None, 10)
     return query
 
 
@@ -127,15 +112,8 @@ def upd8DFstatus(data_doc_type, df, index_col, status):
     bulk_upd8_data = []
     for rwd in df.to_dict("records"):
         try:
-            # rwd = rw._asdict()
             data_line = {'status': status} if isinstance(status, str) else {**status}
-            # if 'account_no' in df and 'cust_id' in df:
-            #     id = "-".join(
-            #         (rwd['dpid'], str(rwd['cust_id']).strip(), str(rwd['account_no']).strip(),
-            #          str(int(rwd['cycle_ver']))))
-            # else:
-            #     id = "-".join((rwd['dpid'], str(rwd[index_col]).strip(), str(int(rwd['cycle_ver']))))
-            ndx_line = {'_index': es_i, '_op_type': 'update', '_type': 'submissions',
+            ndx_line = {'_index': es_i, '_op_type': 'update',
                         '_id': rwd["_id"], 'doc': {**data_line, **{'submission': submission_type_dict[data_doc_type],
                                                             'type': data_type_dict[data_doc_type], }},
             }

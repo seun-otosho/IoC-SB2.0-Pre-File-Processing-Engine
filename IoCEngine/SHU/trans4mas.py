@@ -137,7 +137,7 @@ def fac_vals(file_dict, cxcf_data):
         mdjlog.info("Facility transformation began @ {} with {}".format(right_now(), cxcf_data.shape))
         # count_down(None, 5)
         
-        cxcf_data = trnsfrm_fac_d8s(file_dict, cxcf_data)
+        df_d8s2str(cxcf_data, mdjlog)
         
         try:
             cxcf_data['cust_id'] = cxcf_data.cust_id.apply(
@@ -304,12 +304,11 @@ def fac_vals(file_dict, cxcf_data):
 
 def trnsfm_amts(file_dict, cxcf_data):
     mdjlog = get_logger(file_dict['dp_name'])
-    for fld in amnt_fields():
-        if fld in cxcf_data:
-            try:
-                cxcf_data[fld] = cxcf_data[fld].apply(round_numbers)
-            except Exception as e:
-                mdjlog.warn(f'{fld=}\t|\t{e=}')
+    for fld in [f for f in amnt_fields() if f in cxcf_data]:
+        try:
+            cxcf_data[fld] = cxcf_data[fld].apply(round_numbers)
+        except Exception as e:
+            mdjlog.warn(f'{fld=}\t|\t{e=}')
     
     # try:
     #     log_msg += ' approved_amt |'
@@ -383,158 +382,15 @@ def trnsfm_amts(file_dict, cxcf_data):
     return cxcf_data
 
 
-def trnsfrm_fac_d8s(file_dict, cxcf_data):
-    mdjlog = get_logger(file_dict['dp_name'])
-    for fld in date_fields():
-        if fld in cxcf_data:
-            nrmlz_d8fld(cxcf_data, fld, mdjlog)
-
-    # try:
-    #     log_msg += ' maturity_date |'
-    #     cxcf_data['maturity_date'] = cxcf_data.maturity_date.apply(transform_date)
-    # except Exception as e:
-    #     mdjlog.error('\nlog_msg: {}\n\nerror:\t{}\n\n'.format(log_msg, e))
-    #
-    # try:
-    #     log_msg += ' litigxn_date |'
-    #     cxcf_data['litigxn_date'] = cxcf_data.litigxn_date.apply(transform_date)
-    # except Exception as e:
-    #     mdjlog.error('\nlog_msg: {}\n\nerror:\t{}\n\n'.format(log_msg, e))
-    #
-    # try:
-    #     log_msg += ' int_last_paid_date |'
-    #     cxcf_data['int_last_paid_date'] = cxcf_data.int_last_paid_date.apply(transform_date)
-    # except Exception as e:
-    #     mdjlog.error('\nlog_msg: {}\n\nerror:\t{}\n\n'.format(log_msg, e))
-    #
-    # try:
-    #     log_msg += ' last_paid_date |'
-    #     cxcf_data['last_paid_date'] = cxcf_data.last_paid_date.apply(transform_date)
-    # except Exception as e:
-    #     mdjlog.error('\nlog_msg: {}\n\nerror:\t{}\n\n'.format(log_msg, e))
-    #
-    # try:
-    #     log_msg += ' acct_clsd_date |'
-    #     cxcf_data['acct_clsd_date'] = cxcf_data.acct_clsd_date.apply(transform_date)
-    # except Exception as e:
-    #     mdjlog.error('\nlog_msg: {}\n\nerror:\t{}\n\n'.format(log_msg, e))
-    #
-    # try:
-    #     log_msg += ' d8_acct_stat |'
-    #     cxcf_data['d8_acct_stat'] = cxcf_data.d8_acct_stat.apply(transform_date)
-    # except Exception as e:
-    #     mdjlog.error('\nlog_msg: {}\n\nerror:\t{}\n\n'.format(log_msg, e))
-    #
-    # try:
-    #     log_msg += ' d8_disbursed |'
-    #     cxcf_data['d8_disbursed'] = cxcf_data.d8_disbursed.apply(transform_date)
-    # except Exception as e:
-    #     mdjlog.error('\nlog_msg: {}\n\nerror:\t{}\n\n'.format(log_msg, e))
-    #
-    # try:
-    #     log_msg += ' consent_d8from |'
-    #     cxcf_data['consent_d8from'] = cxcf_data.consent_d8from.apply(transform_date)
-    # except Exception as e:
-    #     mdjlog.error('\nlog_msg: {}\n\nerror:\t{}\n\n'.format(log_msg, e))
-    #
-    # try:
-    #     log_msg += ' consent_d8to |'
-    #     cxcf_data['consent_d8to'] = cxcf_data.consent_d8to.apply(transform_date)
-    # except Exception as e:
-    #     mdjlog.error('\nlog_msg: {}\n\nerror:\t{}\n\n'.format(log_msg, e))
-    #
-    # try:
-    #     log_msg += ' last_paid_date |'
-    #     cxcf_data['last_paid_date'] = cxcf_data.last_paid_date.apply(transform_date)
-    # except Exception as e:
-    #     mdjlog.error('\nlog_msg: {}\n\nerror:\t{}\n\n'.format(log_msg, e))
-    #
-    # try:
-    #     log_msg += ' d8_approved |'
-    #     # cxcf_data.d8_approved = cxcf_data.d8_approved.apply(transform_date)
-    #     cxcf_data['d8_approved'] = cxcf_data.d8_approved.apply(transform_date).where((
-    #         cxcf_data['d8_approved'].notnull()), cxcf_data.d8_approved.apply(transform_date))
-    # except Exception as e:
-    #     mdjlog.error('\nlog_msg: {}\n\nerror:\t{}\n\n'.format(log_msg, e))
-    #
-    # try:
-    #     log_msg += ' amend_date |'
-    #     cxcf_data['amend_date'] = cxcf_data.amend_date.apply(transform_date)
-    # except Exception as e:
-    #     mdjlog.error('\nlog_msg: {}\n\nerror:\t{}\n\n'.format(log_msg, e))
-    #
-
-    return cxcf_data
-
-
-def trnsfrm_corp_d8s(file_dict, cmcs_data):
-    mdjlog = get_logger(file_dict['dp_name'])
-
-    for fld in date_fields():
-        if fld in cmcs_data:
-            nrmlz_d8fld(cmcs_data, fld, mdjlog)
-
-    # try:
-    #     log_msg += ' incorp_date |'
-    #     cmcs_data['incorp_date'] = cmcs_data.incorp_date.apply(transform_date)
-    # except Exception as e:
-    #     mdjlog.error('\nlog_msg: {}\n\nerror:\t{}\n\n'.format(log_msg, e))
-    #
-    # try:
-    #     log_msg += ' id_code1d8xpry |'
-    #     cmcs_data['id_code1d8xpry'] = cmcs_data.id_code1d8xpry.apply(transform_date)
-    # except Exception as e:
-    #     mdjlog.error('\nlog_msg: {}\n\nerror:\t{}\n\n'.format(log_msg, e))
-    #
-    # try:
-    #     log_msg += ' id_code2d8xpry |'
-    #     cmcs_data['id_code2d8xpry'] = cmcs_data.id_code2d8xpry.apply(transform_date)
-    # except Exception as e:
-    #     mdjlog.error('\nlog_msg: {}\n\nerror:\t{}\n\n'.format(log_msg, e))
-    #
-
-    return cmcs_data
-
-
-def trnsfrm_ndvdl_d8s(file_dict, cncs_data):
-    mdjlog = get_logger(file_dict['dp_name'])
-
-    for fld in date_fields():
-        if fld in cncs_data:
-            nrmlz_d8fld(cncs_data, fld, mdjlog)
-
-    # try:
-    #     log_msg += ' birth_date |'
-    #     cncs_data['birth_date'] = cncs_data.birth_date.apply(transform_date)
-    # except Exception as e:
-    #     mdjlog.error('\nlog_msg: {}\n\nerror:\t{}\n\n'.format(log_msg, e))
-    #
-    # try:
-    #     log_msg += ' i_pass_expiry |'
-    #     cncs_data['i_pass_expiry'] = cncs_data.i_pass_expiry.apply(transform_date)
-    # except Exception as e:
-    #     mdjlog.error('\nlog_msg: {}\n\nerror:\t{}\n\n'.format(log_msg, e))
-    #
-    # try:
-    #     log_msg += ' bvn_d8xpry |'
-    #     cncs_data['bvn_d8xpry'] = cncs_data.bvn_d8xpry.apply(transform_date)
-    # except Exception as e:
-    #     mdjlog.error('\nlog_msg: {}\n\nerror:\t{}\n\n'.format(log_msg, e))
-    #
-    # try:
-    #     log_msg += ' biz_d8reg |'
-    #     cncs_data['biz_d8reg'] = cncs_data.biz_d8reg.apply(transform_date)
-    # except Exception as e:
-    #     mdjlog.error('\nlog_msg: {}\n\nerror:\t{}\n\n'.format(log_msg, e))
-    #
-    # try:
-    #     log_msg += ' id_code2d8xpry |'
-    #     cncs_data['id_code2d8xpry'] = cncs_data.id_code2d8xpry.apply(transform_date)
-    # except Exception as e:
-    #     mdjlog.error('\nlog_msg: {}\n\nerror:\t{}\n\n'.format(log_msg, e))
-    #
-
-    return cncs_data
+def df_d8s2str(df, mdjlog):
+    try:
+        for fld in [fld for fld in date_fields() if fld in df]:
+            try:
+                df[fld] = df[fld].apply(transform_date)
+            except Exception as e:
+                mdjlog.warn(f'Error processing field {fld=}\t|\t{e=}')
+    except Exception as e:
+        mdjlog.warn(f'{e=}')
 
 
 def corp_vals(file_dict, cmcs_data):
@@ -544,7 +400,7 @@ def corp_vals(file_dict, cmcs_data):
         mdjlog.info(f"Corporate Subject transformation began @ {right_now()=} with {cmcs_data.shape=}")
         # count_down(None, 5)
         
-        cmcs_data = trnsfrm_corp_d8s(file_dict, cmcs_data)
+        df_d8s2str(cmcs_data, mdjlog)
         
         try:
             cmcs_data['cust_id'] = cmcs_data.cust_id.apply(
@@ -665,13 +521,14 @@ def ndvdl_vals(file_dict, cncs_data):
     if cncs_data is not None and not cncs_data.empty:
         mdjlog.info("Individual Subject transformation began @ {} with {}".format(right_now(), cncs_data.shape))
         # count_down(None, 5)
-        
-        cncs_data = trnsfrm_ndvdl_d8s(file_dict, cncs_data)
+        df_d8s2str(cncs_data, mdjlog)
+        cncs_data.fillna('', inplace=True)
+
+        # cncs_data = trnsfrm_ndvdl_d8s(file_dict, cncs_data)
         
         # if str(new_cons_sbjt_rw['first_name']).strip() == '' and str(new_cons_sbjt_rw['last_name']).strip() != '':
         #     new_cons_sbjt_rw['full_name'] = str(new_cons_sbjt_rw['last_name']).strip()
         #     new_cons_sbjt_rw['last_name'] = ''
-        cncs_data.fillna('', inplace=True)
         # try:
         #     if 'last_name' in cncs_data:
         #         cncs_data['last_name'] = cncs_data.last_name.apply(lambda x: str(x).strip())
@@ -683,6 +540,7 @@ def ndvdl_vals(file_dict, cncs_data):
         # except Exception as e:
         #     mdjlog.warn(e)
         # if ('first_name' not in cncs_data or cncs_data.first_name.empty) and 'last_name' in cncs_data and 'full_name' not in cncs_data:
+
         if file_dict['dp_name'] == 'unity':
             try:
                 cncs_data['full_name'] = cncs_data.last_name.where(
@@ -856,139 +714,12 @@ def ndvdl_vals(file_dict, cncs_data):
         return cncs_data
 
 
-def fields2date(file_dict, df):
-    mdjlog = get_logger(file_dict['dp_name'])
-
-    for fld in date_fields():
-        if fld in df:
-            nrmlz_d8fld(df, fld, mdjlog)
-    
-    # if 'litigxn_date' in df:
-    #     try:
-    #         log_msg += ' litigxn_date |'
-    #         df['litigxn_date'] = df.litigxn_date.apply(to_date)
-    #     except Exception as e:
-    #         mdjlog.warning('\nlog_msg: {}\n\nwarning:\t{}\n\n'.format(log_msg, e))
-    #
-    # if 'int_last_paid_date' in df:
-    #     try:
-    #         log_msg += ' int_last_paid_date |'
-    #         df['int_last_paid_date'] = df.int_last_paid_date.apply(to_date)
-    #     except Exception as e:
-    #         mdjlog.warning('\nlog_msg: {}\n\nwarning:\t{}\n\n'.format(log_msg, e))
-    #
-    # if 'last_paid_date' in df:
-    #     try:
-    #         log_msg += ' last_paid_date |'
-    #         df['last_paid_date'] = df.last_paid_date.apply(to_date)
-    #     except Exception as e:
-    #         mdjlog.warning('\nlog_msg: {}\n\nwarning:\t{}\n\n'.format(log_msg, e))
-    #
-    # if 'acct_clsd_date' in df:
-    #     try:
-    #         log_msg += ' acct_clsd_date |'
-    #         df['acct_clsd_date'] = df.acct_clsd_date.apply(to_date)
-    #     except Exception as e:
-    #         mdjlog.warning('\nlog_msg: {}\n\nwarning:\t{}\n\n'.format(log_msg, e))
-    #
-    # if 'd8_acct_stat' in df:
-    #     try:
-    #         log_msg += ' d8_acct_stat |'
-    #         df['d8_acct_stat'] = df.d8_acct_stat.apply(to_date)
-    #     except Exception as e:
-    #         mdjlog.warning('\nlog_msg: {}\n\nwarning:\t{}\n\n'.format(log_msg, e))
-    #
-    # if 'd8_disbursed' in df:
-    #     try:
-    #         log_msg += ' d8_disbursed |'
-    #         df['d8_disbursed'] = df.d8_disbursed.apply(to_date)
-    #     except Exception as e:
-    #         mdjlog.warning('\nlog_msg: {}\n\nwarning:\t{}\n\n'.format(log_msg, e))
-    #
-    # if 'consent_d8from' in df:
-    #     try:
-    #         log_msg += ' consent_d8from |'
-    #         df['consent_d8from'] = df.consent_d8from.apply(to_date)
-    #     except Exception as e:
-    #         mdjlog.warning('\nlog_msg: {}\n\nwarning:\t{}\n\n'.format(log_msg, e))
-    #
-    # if 'consent_d8to' in df:
-    #     try:
-    #         log_msg += ' consent_d8to |'
-    #         df['consent_d8to'] = df.consent_d8to.apply(to_date)
-    #     except Exception as e:
-    #         mdjlog.warning('\nlog_msg: {}\n\nwarning:\t{}\n\n'.format(log_msg, e))
-    #
-    # if 'd8_approved' in df:
-    #     try:
-    #         log_msg += ' d8_approved |'
-    #         # df.d8_approved = df.d8_approved.apply( to_date)
-    #         df['d8_approved'] = df.d8_approved.apply(to_date).where((
-    #             df['d8_approved'].notnull()), df.d8_approved.apply(to_date))
-    #     except Exception as e:
-    #         mdjlog.warning('\nlog_msg: {}\n\nwarning:\t{}\n\n'.format(log_msg, e))
-    #
-    # if 'amend_date' in df:
-    #     try:
-    #         log_msg += ' amend_date |'
-    #         df['amend_date'] = df.amend_date.apply(to_date)
-    #     except Exception as e:
-    #         mdjlog.warning('\nlog_msg: {}\n\nwarning:\t{}\n\n'.format(log_msg, e))
-    #
-    # if 'incorp_date' in df:
-    #     try:
-    #         log_msg += ' incorp_date |'
-    #         df['incorp_date'] = df.incorp_date.apply(to_date)
-    #     except Exception as e:
-    #         mdjlog.warning('\nlog_msg: {}\n\nwarning:\t{}\n\n'.format(log_msg, e))
-    #
-    # if 'id_code1d8xpry' in df:
-    #     try:
-    #         log_msg += ' id_code1d8xpry |'
-    #         df['id_code1d8xpry'] = df.id_code1d8xpry.apply(to_date)
-    #     except Exception as e:
-    #         mdjlog.warning('\nlog_msg: {}\n\nwarning:\t{}\n\n'.format(log_msg, e))
-    #
-    # if 'id_code2d8xpry' in df:
-    #     try:
-    #         log_msg += ' id_code2d8xpry |'
-    #         df['id_code2d8xpry'] = df.id_code2d8xpry.apply(to_date)
-    #     except Exception as e:
-    #         mdjlog.warning('\nlog_msg: {}\n\nwarning:\t{}\n\n'.format(log_msg, e))
-    #
-    # if 'birth_date' in df:
-    #     try:
-    #         log_msg += ' birth_date |'
-    #         df['birth_date'] = df.birth_date.apply(to_date)
-    #     except Exception as e:
-    #         mdjlog.warning('\nlog_msg: {}\n\nwarning:\t{}\n\n'.format(log_msg, e))
-    #
-    # if 'i_pass_expiry' in df:
-    #     try:
-    #         log_msg += ' i_pass_expiry |'
-    #         df['i_pass_expiry'] = df.i_pass_expiry.apply(to_date)
-    #     except Exception as e:
-    #         mdjlog.warning('\nlog_msg: {}\n\nwarning:\t{}\n\n'.format(log_msg, e))
-    #
-    # if 'bvn_d8xpry' in df:
-    #     try:
-    #         log_msg += ' bvn_d8xpry |'
-    #         df['bvn_d8xpry'] = df.bvn_d8xpry.apply(to_date)
-    #     except Exception as e:
-    #         mdjlog.warning('\nlog_msg: {}\n\nwarning:\t{}\n\n'.format(log_msg, e))
-    #
-    # if 'biz_d8reg' in df:
-    #     try:
-    #         log_msg += ' biz_d8reg |'
-    #         df['biz_d8reg'] = df.biz_d8reg.apply(to_date)
-    #     except Exception as e:
-    #         mdjlog.warning('\nlog_msg: {}\n\nwarning:\t{}\n\n'.format(log_msg, e))
-    
-    return df
-
-
-def nrmlz_d8fld(df, fld, mdjlog):
+def df_flds2date(df, mdjlog):
     try:
-        df.loc[:, fld] = df[fld].apply(to_date)
+        for fld in [f for f in date_fields() if f in df]:
+            try:
+                df.loc[:, fld] = df[fld].apply(to_date)
+            except Exception as e:
+                mdjlog.warn(f'Error processing field {fld=}\t|\t{e=}')
     except Exception as e:
-        mdjlog.warn(f'{fld=}\t|\t{e=}')
+        mdjlog.warn(f'{e=}')

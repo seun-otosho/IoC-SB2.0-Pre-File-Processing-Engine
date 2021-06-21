@@ -8,7 +8,7 @@ import progressbar
 from elasticsearch import helpers
 
 from IoCEngine.SHU.amounts import float_numbers
-from IoCEngine.SHU.trans4mas import fields2date, normalize_amts
+from IoCEngine.SHU.trans4mas import df_flds2date, normalize_amts
 from IoCEngine.celeryio import app
 from IoCEngine.commons import (
     cdt_udf_modes, cf, count_down, cs, data_type_dict, fs, getID, ns, submission_type_dict, gs, ps, re_ndx_flds
@@ -20,7 +20,6 @@ from IoCEngine.utils.file import (pym_db, DataBatchProcess, DataFiles)
 from utilities.models import ColumnMapping, InMode, IoCField
 
 
-# dbhs = '172.16.2.23'
 dbn = 'IoC'
 
 log_txt = module_logger()
@@ -28,6 +27,7 @@ logger = get_logger(log_txt, funcname=True)
 logger.info('test')
 
 ps0, ps1, psa, xtr_cols = prnc_cols()
+
 
 @app.task(name='route_df')
 def route_df(data_tupl):
@@ -341,10 +341,10 @@ def stream_df(_type, index_col, df):
 
 
 def data2col(args, df):
-    data_tpl, cols, data_store, datatype = args[0], args[1], args[2], args[3]
+    data_tpl, cols, data_store, datatype = args[:4]
     file_name, mdjlogger = data_tpl[0]['file_name'], get_logger(data_tpl[0]['dp_name'])
     data_batch_info, df_dtls = {}, DataFiles.objects(file_name=data_tpl[0]['file_name']).first()
-    df_dtls[datatype] = df.shape[0]
+    df_dtls[datatype], data_tpl = df.shape[0], (*data_tpl, mdjlogger, )
     df_dtls.save()
     # todo
     # upd8col_mappings(mdjlogger, df.columns, cols, data_tpl[0]['in_mod'])
@@ -440,7 +440,8 @@ def indexDF(data_store, data_tpl, df, dp_name, mdjlogger):
     if data_store.split('_')[0] in ('facility'):
         # df = trnsfm_amts(data_tpl[0], df)
         df = normalize_amts(data_tpl[0], df)
-    df = fields2date(data_tpl[0], df)
+    # df =
+    df_flds2date(df, data_tpl[-1])
 
     df.loc[:, 'status'], df.loc[:, 'dp_name'], df.loc[:, 'data_file'] = 'Loaded', dp_name, data_tpl[0]['file_name']
     bulk_data, data_type, i, _type = [], data_tpl[1], 0, data_store
