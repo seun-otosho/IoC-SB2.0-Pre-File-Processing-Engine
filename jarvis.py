@@ -8,21 +8,20 @@ Created 2016
 
 
 import os
-import pandas as pd
 from itertools import chain
 
 from IoCEngine import drop_zone
 # from IoCEngine.SHU.categorize import minify
 from IoCEngine.SHU.trans4mas import corp_vals, ndvdl_vals, fac_vals
 from IoCEngine.celeryio import app
-from IoCEngine.commons import (all_all_modes, all_corp_modes, all_ndvdl_modes, count_down, cf, cs, fs, nf, ns, getID,
+from IoCEngine.commons import (all_all_modes, all_corp_modes, all_ndvdl_modes, cf, cs, fs, nf, ns, getID,
                                mk_dir, mk_dp_x_dir, cdt_udf_modes, sngl_sbjt_in_modes, sgmnt_def, g_meta, gs, ps)
+from IoCEngine.config.pilot import chunk_size as split_var
 from IoCEngine.cores import ppns
 from IoCEngine.logger import get_logger
 from IoCEngine.utils.db2data import combo_data, fac_data, corp_data, ndvdl_data, upd8DFstatus
 from IoCEngine.utils.file import DataFiles, DataBatchProcess, dict_file, xtrct_file_details
 from IoCEngine.utils.file_reader import xtrct_all_data, xtrct_ff_data, xtrct_ws_data
-from IoCEngine.config.pilot import chunk_size as split_var
 from IoCEngine.utils.sb2 import syndic8data
 # client = Executor()
 from auto_bots import upd8batch
@@ -270,8 +269,9 @@ def handle_individual_data(dp_name, load3Db, mdjlog, ndvdl, ndvdl_df, ndvdlfac, 
             # ndvdlfac2df = ppns(fac_vals, ndvdlfac_df, load3Dbatch, True)
             # xcpxn_rex(ndvdlfac2df, ndvdl2df, 'individual', load3Dbatch)
             # todo del fac_df, ndvdl_df, ndvdlfac_df
-            mdjlog.info(f"""\nindividual facility counts is {ndvdlfac2df.shape[0]}
-                individual subject count is {ndvdl2df.shape[0]}""")
+            mdjlog.info(
+                f"""individual facility counts is {ndvdlfac2df.shape[0]} individual subject count is {ndvdl2df.shape[0]}
+                """)
             datCat = 'con'
             ctgry_dtls, dp_meta = g_meta(datCat, dp_name, load3Db)
             syndifiles = syndic8data(ndvdlfac2df, ndvdl2df, load3Db, ctgry_dtls, datCat, dp_meta, b2u, chunk_mode)

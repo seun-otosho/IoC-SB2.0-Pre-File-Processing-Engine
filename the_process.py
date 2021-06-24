@@ -10,9 +10,7 @@ Created 2016
 import datetime
 import os
 import sys
-
 from importlib import reload
-
 from subprocess import call
 
 from IoCEngine import drop_zone
@@ -32,17 +30,6 @@ if sys.version[0] == '2':
 nlv = "\r\n"
 
 mdjlog = logger('jarvis')
-
-
-# celery.config_from_object('config.pilot')
-# IoCstr = """
-# #!/IJN:
-# ###               ##
-#  #       ##      #  #
-#  #      #  #     #
-#  #      #  #     #  #
-# ###  #   ##   #   ##   #
-# """
 
 
 def right_now():

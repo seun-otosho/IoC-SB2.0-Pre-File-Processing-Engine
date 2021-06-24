@@ -225,6 +225,6 @@ of Credit
     figletstr = pyfiglet.figlet_format(str2fig, font=fig_font)
     return f"""
 #!/IJN
-{fig_font=}
+{fig_font}
 {figletstr}
 """

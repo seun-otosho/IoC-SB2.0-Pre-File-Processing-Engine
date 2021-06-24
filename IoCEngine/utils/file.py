@@ -73,7 +73,7 @@ def dict_file(fl, dtls, start, mdjlog=None):
             except:
                 pass
         # data_dtls = json.loads(json.dumps(data_dtls, default=json_util.default))
-        mdjlog.info('\nfile analyses below\n{}'.format(json.dumps(data_dtls, indent=4)))
+        mdjlog.info(f'file analyses below{data_dtls}')
         svd_dtls = DataFiles(**data_dtls)
         try:
             svd_dtls.save()

@@ -22,8 +22,8 @@ from utilities.models import ColumnMapping, InMode, IoCField
 
 dbn = 'IoC'
 
-log_txt = module_logger()
-logger = get_logger(log_txt, funcname=True)
+# log_txt = module_logger()
+logger = get_logger()
 logger.info('test')
 
 ps0, ps1, psa, xtr_cols = prnc_cols()

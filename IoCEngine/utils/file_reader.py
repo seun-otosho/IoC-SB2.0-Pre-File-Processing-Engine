@@ -11,6 +11,7 @@ from IoCEngine.commons import mk_dp_x_dir, cs, ns
 from IoCEngine.data_router import worksheet_datatype as confirm_data
 from IoCEngine.logger import get_logger
 from IoCEngine.utils.data2db import route_df
+from IoCEngine.utils.file import DataFiles
 
 
 def rw_file(dz, file, nums):
@@ -157,7 +158,7 @@ def handle_ff_xcpxn(e, expected, file, line, saw):
 
 
 @app.task(name='xtrct_ws_data')
-def xtrct_ws_data(file_meta, batch_no=None):
+def xtrct_ws_data(file_meta: DataFiles):
     mdjlog = get_logger(file_meta['file_name'].split('_')[0])
     try:
         file = file_meta['file_name']
@@ -166,7 +167,7 @@ def xtrct_ws_data(file_meta, batch_no=None):
         if df.shape[0] > 0:
             mdjlog.info("Data Read with STATS {}".format(df.shape))
             rez_dup(file_meta, df)
-            return route_df((file_meta, file_meta['data_type'], df))
+            route_df((file_meta, file_meta['data_type'], df))
         else:
             mdjlog.info('no data. ..')
     except Exception as e:
@@ -174,7 +175,7 @@ def xtrct_ws_data(file_meta, batch_no=None):
 
 
 @app.task(name='xtrct_all_data')
-def xtrct_all_data(file_meta):
+def xtrct_all_data(file_meta: DataFiles):
     try:
         mdjlog = get_logger(file_meta['file_name'].split('_')[0].lower())
         try:
@@ -182,7 +183,7 @@ def xtrct_all_data(file_meta):
             mdjlog.info("Reading ALL Data from SpeadSheets in Data File {}".format(file))
             xlwb = pd.ExcelFile(drop_zone + file)
             sh_names = xlwb.sheet_names
-            mdjlog.info("\ndata file worksheet names {}\n".format(sh_names))
+            mdjlog.info("data file worksheet names {}".format(sh_names))
             data_list = [confirm_data(name, file) for name in sh_names]
             data_list = [data_item for data_item in data_list if data_item is not None]
             mdjlog.info(data_list)

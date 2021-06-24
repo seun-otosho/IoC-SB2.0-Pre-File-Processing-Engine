@@ -386,7 +386,7 @@ def df_d8s2str(df, mdjlog):
     try:
         for fld in [fld for fld in date_fields() if fld in df]:
             try:
-                df[fld] = df[fld].apply(transform_date)
+                df.loc[:, fld] = df[fld].apply(transform_date)
             except Exception as e:
                 mdjlog.warn(f'Error processing field {fld=}\t|\t{e=}')
     except Exception as e:

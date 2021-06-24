@@ -36,13 +36,15 @@ dcrtd_frmtr = Formatter('%(process)s - %(thread)s @ %(asctime)s {%(name)s:%(line
                                 '%(func_name)30s() ~> %(funcName)s()} %(levelname)s - %(message)s')
 
 
-def get_logger(logger_name=None, level=level, mini=False, funcname=True, func_name=None):
+def get_logger(logger_name=None, func_name=None, funcname=True, level=level, mini=False):
     global loggers, dcrtd_frmtr
+    stck = stack()
+    src_fyl = stck[1][1]
+    func_name = func_name if func_name else splitext(src_fyl.split(sep)[-1])[0]
     if loggers.get(logger_name):
         return loggers.get(logger_name)
     else:
-        logger_name = stack()[1][3].replace('<', '').replace(
-            '>', '') if not logger_name else logger_name
+        logger_name = stack()[1][3].replace('<', '').replace('>', '') if not logger_name else logger_name
         l = getLogger(logger_name)
         l.propagate = False
         # formatter = logging.Formatter('%(asctime)s : %(message)s')     %(os.getpid())s|
