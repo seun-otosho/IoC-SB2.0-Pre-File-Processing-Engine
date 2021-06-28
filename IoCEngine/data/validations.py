@@ -1,4 +1,4 @@
-from IoCEngine.commons import cs, fs, ns
+from IoCEngine.commons import cs, dict_dotter, fs, ns
 from IoCEngine.utils.data_modes import min_mndtry
 from IoCEngine.SHU.d8s import to_date
 from IoCEngine.utils.file import get_d8rprt3D, pym_db
@@ -88,8 +88,9 @@ def principal_overdues(btch, facdf, overdue_fields):
             # log exceptions for dp, cycle_ver, cust_id, account_no, fields, exception
             df = excpxn_df[['dp_name', 'cust_id', 'account_no', 'overdue_amt', 'overdue_days']] if btch['in_mod'] in (
                 'cdt',) else excpxn_df[['dp_name', 'account_no', 'overdue_amt', 'overdue_days']]
-            for rec in df.itertuples():
-                d = rec._asdict()
+            df_dict = df.to_dict('records')
+            for d in df_dict:
+                rec = dict_dotter(d)
                 if pssbl_number(rec):
                     if (int(float(rec.overdue_amt)) == 0 and int(float(rec.overdue_days)) > 0) or (
                                     int(float(rec.overdue_amt)) > 0 and int(float(rec.overdue_days)) == 0):
@@ -127,8 +128,9 @@ def interest_overdues(btch, facdf, overdue_fields):
             df = excpxn_df[['dp_name', 'cust_id', 'account_no', 'int_overdue_amt', 'int_overdue_days']
             ] if btch['in_mod'] in ('cdt',) else excpxn_df[
                 ['dp_name', 'account_no', 'int_overdue_amt', 'int_overdue_days']]
-            for rec in df.itertuples():
-                d = rec._asdict()
+            df_dict = df.to_dict('records')
+            for d in df_dict:
+                rec = dict_dotter(d)
                 if pssbl_number(rec):
                     if (int(rec.int_overdue_amt) == 0 and int(rec.int_overdue_days) > 0) or (
                                     int(rec.int_overdue_amt) > 0 and int(rec.int_overdue_days) == 0):
@@ -314,8 +316,9 @@ def facility_dates(btch, facdf, date_reported):
 
 
 def fx_xcpxn_df(btch, df, xcpxn, xcpxn_fields):
-    for rec in df.itertuples():
-        d = rec._asdict()
+    df_dict = df.to_dict('records')
+    for d in df_dict:
+        rec = dict_dotter(d)
         dd = {k: str(v) for k, v in d.items()}
         dd['cycle_ver'], dd['fields'], dd['level'] = btch['cycle_ver'], ', '.join(xcpxn_fields), 4
         db_log_xcpxns(btch, dd, rec, xcpxn, None, xcpxn_fields)
@@ -359,8 +362,9 @@ def log_df_xcpxns(btch, df, fields, xcpxns, subjt=None):
     mdjlog = get_logger(btch['dp_name'])
     try:
         df.dropna(axis='columns', how='all', inplace=True)
-        for rec in df.itertuples():
-            d = rec._asdict()
+        df_dict = df.to_dict('records')
+        for d in df_dict:
+            rec = dict_dotter(d)
             dd = {k: str(d[k]) for k in d.keys() if not str(d[k]).strip() == ''}
             fj = ', '.join(fields) if fields else None
             dd['cycle_ver'], dd['fields'], dd['level'] = btch['cycle_ver'], fj, 4

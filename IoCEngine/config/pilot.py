@@ -120,6 +120,6 @@ dSet = dSetting(8,1)
 EsSetup(conEs,'idxName','docTypeName',dset,dMap)
 '''
 
-chunk_size = 1000  # 45789
+chunk_size = 45789  # 1000  #
 
 mpcores = round(multiprocessing.cpu_count() / 3)

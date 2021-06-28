@@ -93,22 +93,24 @@ def mk_dp_x_dir(dp_name):
     return xtrcxn_zone
 
 
-def count_down(dir=None, down_count=None, ):
+def count_down(dir: str = None, down_count: int = None, ):
     iW8, spcr = randint(1, 4), '\t' * 14
     for remaining in range(iW8, 0, -1):
+        d, s = '.'*remaining + ' '*5, 'seconds' if remaining > 1 else 'second'
         if dir:
-            std_out(
-                "{}Please drop files in {} to be processed in {:4d} seconds.".format(spcr, dir, remaining))
+            std_out(f"{spcr}Please drop files in {dir} to be processed in {remaining} {s}. {d}")
         elif down_count:
-            std_out("Please wait we will continue in {:4d} seconds.".format(remaining))
+            std_out(f"Please wait, we will continue in {remaining} {s}. {d}")
         time.sleep(1)
 
 
-def std_out(strv, nlv=None):
-    if nlv: sys.stdout.write(nlv)
+def std_out(strv: str, nlv=None):
+    if nlv:
+        sys.stdout.write(nlv)
     sys.stdout.write("\r")
     sys.stdout.write(strv)
-    if nlv: sys.stdout.write(nlv)
+    if nlv:
+        sys.stdout.write(nlv)
     sys.stdout.flush()
 
 
@@ -126,7 +128,7 @@ sngl_crdt_in_modes = cf + nf + sf
 sgmnt_def = {
     'allcorp': 'corporate',
     'corp': 'corporate',
-    'allcorp': 'facility',
+    # 'allcorp': 'facility',
     'corpfac': 'facility',
     'fac': 'facility',
     'ndvdlfac': 'facility',
@@ -171,22 +173,26 @@ data_type_dict = {
 
 
 def sb2ctgry_file_type_codes(code_name=None):
-    if code_name:
-        ctgry_code = CtgryCode.query.filter_by(code_name=code_name).first()
-        return {ctgry_code.code_name: (ctgry_code.header_code, ctgry_code.file_type_code)}
-    else:
+    if code_name is None:
         ctgry_codes = CtgryCode.query.all()
         return {ctgry_code.code_name: (ctgry_code.header_code, ctgry_code.file_type_code) for ctgry_code in ctgry_codes}
+    else:
+        ctgry_code = CtgryCode.query.filter_by(code_name=code_name).first()
+        return {ctgry_code.code_name: (ctgry_code.header_code, ctgry_code.file_type_code)}
 
 
 # ctgry_dtls = sb2ctgry_file_type_codes()
 
 
 def g_meta(datCat, dp_name, load3Dbatch):
-    dp_meta = dp_meta_data(load3Dbatch['dp_name'])
-    instCat = dp_meta[dp_name][2]
-    sgmnt = instCat + datCat if instCat not in ('cb',) else datCat
-    ctgry_dtls = sb2ctgry_file_type_codes(sgmnt)
+    logger = get_logger(dp_name)
+    try:
+        dp_meta = dp_meta_data(load3Dbatch['dp_name'])
+        instCat = dp_meta[dp_name][2]
+        sgmnt = instCat + datCat if instCat not in ('cb',) else datCat
+        ctgry_dtls = sb2ctgry_file_type_codes(sgmnt)
+    except Exception as e:
+        logger.error(e)
     return ctgry_dtls, dp_meta
 
 
@@ -228,3 +234,19 @@ of Credit
 {fig_font}
 {figletstr}
 """
+
+
+class dict_dotter(dict):
+    """dot.notation access to dictionary attributes"""
+
+    def __getattr__(self, key):
+        try:
+            return self[key]
+        except KeyError as k:
+            raise AttributeError(k)
+
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
+    def __repr__(self):
+        return '<Dict Dotter ' + dict.__repr__(self) + '>'

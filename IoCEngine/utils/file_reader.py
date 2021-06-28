@@ -90,6 +90,7 @@ def xtrct_ff_data(file_meta, batch_no=None):
                 drop_zone + file, dtype=str, keep_default_na=True, sep='|', thousands=',', encoding="ISO-8859-1",
                 error_bad_lines=False, warn_bad_lines=True)
             # df = handle_ff_xcpxn(e, expected, file, line, saw)
+            df.drop_duplicates(inplace=True)
             return
     if len(line) != 0:
         mdjlog.info(line)
@@ -133,6 +134,7 @@ def ff_large_file_mgr(file, file_meta):
     # else:
     df = pd.read_csv(drop_zone + file, dtype=str, keep_default_na=True, sep='|', thousands=',', encoding="ISO-8859-1",
                      error_bad_lines=False, warn_bad_lines=True)
+    df.drop_duplicates(inplace=True)
     rez_dup(file_meta, df)
     route_df((file_meta, file_meta['data_type'], df))
     # return df
@@ -164,6 +166,7 @@ def xtrct_ws_data(file_meta: DataFiles):
         file = file_meta['file_name']
         mdjlog.info("Reading Data from WorkSheet from Data File {}".format(file))
         df = pd.read_excel(drop_zone + file, pd.ExcelFile(drop_zone + file).sheet_names[0], dtype=str)
+        df.drop_duplicates(inplace=True)
         if df.shape[0] > 0:
             mdjlog.info("Data Read with STATS {}".format(df.shape))
             rez_dup(file_meta, df)
@@ -190,6 +193,7 @@ def xtrct_all_data(file_meta: DataFiles):
             for i, sgmnt in enumerate(data_list):
                 ws = sgmnt[1]
                 df = pd.read_excel(drop_zone + file, ws, dtype=str)
+                df.drop_duplicates(inplace=True)
                 mdjlog.info('exiting. .. routing {} : {} data'.format(df.shape, sgmnt))
                 if df.shape[0] > 0:
                     mdjlog.info("Data Read from worksheet {} with STATS {}".format(ws, df.shape))

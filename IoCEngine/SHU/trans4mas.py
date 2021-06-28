@@ -16,6 +16,7 @@ currency_dict = ctlg.currency_ctlg()
 employ_stat_dict = ctlg.employ_stat_ctlg()
 gender_dict = ctlg.gender_ctlg()
 grntee_cov = ctlg.guarantee_cov()
+grntr_typ = ctlg.guarantor_typ()
 loan_typ_dict = ctlg.loan_typ_ctlg()
 legal_stat_dict = ctlg.legal_stat_ctlg()
 mrtl_stat_dict = ctlg.marital_stat_ctlg()
@@ -611,7 +612,7 @@ def ndvdl_vals(file_dict, cncs_data):
             cncs_data['gender'] = cncs_data.gender.apply(lambda x: str(x).upper()).apply(
                 lambda x: gender_dict.get(x.strip().upper(), ''))
         except Exception as e:
-            mdjlog.error('\nlog_msg: {}\n\nerror:\t{}\n\n'.format(log_msg, e))
+            mdjlog.error('log_msg: {}error:\t{}'.format(log_msg, e))
         
         try:
             log_msg = ' mrtl_stat |'

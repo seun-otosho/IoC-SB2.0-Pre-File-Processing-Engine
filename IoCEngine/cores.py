@@ -10,19 +10,19 @@ from IoCEngine.config.pilot import mpcores
 mdjlogger = get_logger('jarvis')
 
 
-def ppls(f, df, re=False):
-    try:
-        processes = multiprocessing.cpu_count() - 1
-        chunk_size = int(df.shape[0] / processes)
-        chunks = [df.ix[df.index[i:i + chunk_size]] for i in range(0, df.shape[0], chunk_size)]
-        pool = multiprocessing.Pool(processes=processes)
-        res = pool.map(partial(f, chunks, ))
-        if re:
-            for i in range(len(res)):
-                df.iloc[res[i].index] = res[i]
-        return df
-    except Exception as e:
-        mdjlogger.error(e)
+# def ppls(f, df, re=False):
+#     try:
+#         processes = multiprocessing.cpu_count() - 1
+#         chunk_size = int(df.shape[0] / processes)
+#         chunks = [df.ix[df.index[i:i + chunk_size]] for i in range(0, df.shape[0], chunk_size)]
+#         pool = multiprocessing.Pool(processes=processes)
+#         res = pool.map(partial(f, chunks, ))
+#         if re:
+#             for i in range(len(res)):
+#                 df.iloc[res[i].index] = res[i]
+#         return df
+#     except Exception as e:
+#         mdjlogger.error(e)
 
 
 def ppns(f, df, listargs, re=False):

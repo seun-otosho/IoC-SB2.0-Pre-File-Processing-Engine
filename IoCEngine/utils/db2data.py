@@ -70,6 +70,7 @@ def i2df(data_doc_type, data_size, dpid, loaded_batch, ndx_col):
     df = Select.from_dict(rez).to_pandas()
     df = df if (data_doc_type in gs
         ) else df[df.sub_type == f"{submission_type_dict[data_doc_type]}-{data_type_dict[data_doc_type]}"]
+    df.drop_duplicates(inplace=True)
     if df is not None and not df.empty:
         df.fillna('', inplace=True)
 

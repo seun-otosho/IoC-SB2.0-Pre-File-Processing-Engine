@@ -241,6 +241,21 @@ def guarantee_cov():
     }
 
 
+def guarantor_typ():
+    return {
+        '1': '001',
+        '001': '001',
+        'individual': '001',
+        'personal': '001',
+        '2': '002',
+        '002': '002',
+        'corporate': '002',
+        'business entity': '002',
+        # '003': '003',
+        # 'Government Backed Guarantees': '003',
+    }
+
+
 def disco_biz_units():
     return {'Garden City Main': '001',
             'Garden City East': '002',

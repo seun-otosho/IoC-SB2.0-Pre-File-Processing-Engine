@@ -1,5 +1,6 @@
-from IoCEngine.utils.file import pym_db
+from commons import dict_dotter
 from IoCEngine.logger import get_logger
+from IoCEngine.utils.file import pym_db
 
 severity_levels = {
     'alert': 1,
@@ -129,8 +130,9 @@ def principal_overdues(btch, facdf, overdue_fields):
             # log exceptions for dp, cycle_ver, cust_id, account_no, fields, exception
             df = excpxn_df[['dp_name', 'cust_id', 'account_no', 'overdue_amt', 'overdue_days']] if btch['in_mod'] in (
                 'cdt',) else excpxn_df[['dp_name', 'account_no', 'overdue_amt', 'overdue_days']]
-            for rec in df.itertuples():
-                d = rec._asdict()
+            df_dict = df.to_dict('records')
+            for d in df_dict:
+                rec = dict_dotter(d)
                 if pssbl_number(rec):
                     if (int(float(rec.overdue_amt)) == 0 and int(float(rec.overdue_days)) > 0) or (
                                     int(float(rec.overdue_amt)) > 0 and int(float(rec.overdue_days)) == 0):
@@ -158,8 +160,9 @@ def interest_overdues(btch, facdf, overdue_fields):
             # log exceptions for dp, cycle_ver, cust_id, account_no, fields, exception
             df = excpxn_df[['dp_name', 'cust_id', 'account_no', 'overdue_amt', 'overdue_days']] if btch['in_mod'] in (
                 'cdt',) else excpxn_df[['dp_name', 'account_no', 'overdue_amt', 'overdue_days']]
-            for rec in df.itertuples():
-                d = rec._asdict()
+            df_dict = df.to_dict('records')
+            for d in df_dict:
+                rec = dict_dotter(d)
                 if pssbl_number(rec):
                     if (int(rec.int_overdue_amt) == 0 and int(rec.int_overdue_days) > 0) or (
                                     int(rec.int_overdue_amt) > 0 and int(rec.int_overdue_days) == 0):

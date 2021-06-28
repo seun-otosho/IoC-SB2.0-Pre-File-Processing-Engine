@@ -75,7 +75,8 @@ def normal_numbers(num):
             try:
 
                 if isinstance(num, (float, int, Real)):
-                    if num > 0 and num < 1: return 1
+                    if 0 < num < 1:
+                        return 1
                     return float(num)
                 """
                 if ',' in str(num) and '.' in str(num):
@@ -108,7 +109,8 @@ def normal_numbers(num):
                     num_count -= 1
                     if num_count == 1 and nnum is None:
                         nnum = 0.0
-                if nnum > 0 and nnum < 1: return 1
+                if 0 < nnum < 1:
+                    return 1
                 return nnum
 
     else:

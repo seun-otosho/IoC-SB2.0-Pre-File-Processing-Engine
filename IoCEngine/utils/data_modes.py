@@ -109,7 +109,7 @@ def iff() -> dict:
 
                 'national_id_no', 'i_pass_no', 'i_pass_expiry', 'drivin_license_no', 'tax_id',
 
-                'biz_reg_no', 'birth_incorp_date', 'prev_biz_reg_no', 'incorp_cert', 'soc_reg_no', 'biz_tax_id',
+                'biz_reg_no', 'incorp_date', 'prev_biz_reg_no', 'incorp_cert', 'soc_reg_no', 'biz_tax_id',
 
                 'iss_auth1', 'bvn', 'id_code1d8xpry', 'iss_auth2', 'id_code2', 'id_code2d8xpry',
 
@@ -173,7 +173,7 @@ def iff() -> dict:
                 'iss_auth1', 'bvn', 'id_code1d8xpry', 'iss_auth2', 'id_code2', 'id_code2d8xpry',
                 'iss_auth3', 'bvn', 'id_code3d8xpry', 'iss_auth4', 'id_code4', 'id_code4d8xpry',
 
-                'biz_reg_no', 'birth_incorp_date', 'prev_biz_reg_no', 'incorp_cert', 'soc_reg_no', 'biz_tax_id',
+                'biz_reg_no', 'incorp_date', 'prev_biz_reg_no', 'incorp_cert', 'soc_reg_no', 'biz_tax_id',
 
                 'national_id_no', 'i_pass_no', 'i_pass_expiry', 'drivin_license_no', 'tax_id',
 
@@ -349,7 +349,8 @@ def amnt_fields() -> tuple:
     return f
 
 
-def number_fields(): return amnt_fields()
+def number_fields():
+    return amnt_fields()
 
 
 def date_fields():

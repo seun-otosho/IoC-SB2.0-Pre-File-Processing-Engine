@@ -1,10 +1,8 @@
-
-import json
 from datetime import datetime
 from numbers import Real
 
 import pandas as pd
-import progressbar
+# import progressbar
 from elasticsearch import helpers
 
 from IoCEngine.SHU.amounts import float_numbers
@@ -14,11 +12,10 @@ from IoCEngine.commons import (
     cdt_udf_modes, cf, count_down, cs, data_type_dict, fs, getID, ns, submission_type_dict, gs, ps, re_ndx_flds
 )
 from IoCEngine.config.pilot import es, es_i
-from IoCEngine.logger import get_logger, module_logger
+from IoCEngine.logger import get_logger
 from IoCEngine.utils.data_modes import *
 from IoCEngine.utils.file import (pym_db, DataBatchProcess, DataFiles)
 from utilities.models import ColumnMapping, InMode, IoCField
-
 
 dbn = 'IoC'
 
@@ -36,8 +33,8 @@ def route_df(data_tupl):
     data_type, in_mod, out_mod = data_tupl[1], data_tupl[0]['in_mod'], data_tupl[0]['out_mod']
     data_tpl = list(data_tupl)
     df = data_tpl.pop(2)
-    df = df[[col for col in df.columns if col is not None]]
-    # todo gather_stats(data_tpl)
+    df = df[[col for col in df.columns if col]]
+    gather_stats((*data_tpl, df, ))  # todo perhaps move to after routing file or before indexing. ..
     try:
         if in_mod in ('cmb', 'iff', 'mfi', 'pmi', 'sb2',):
             if data_type in cs:
@@ -49,7 +46,8 @@ def route_df(data_tupl):
                 else:
                     try:
                         ifff = iff()[in_mod if in_mod != 'iff' else out_mod]['comm']
-                    except:
+                    except Exception as e:
+                        mdjlogger.error(e)
                         ifff = iff()[in_mod if in_mod != 'iff' else out_mod][data_type]
                     data_tpl, cols, data_store = data_tpl, ifff, 'corporate_submissions'  # CorporateSubmissions
                     return data2col((data_tpl, cols, data_store, data_type), df)
@@ -74,7 +72,8 @@ def route_df(data_tupl):
                 else:
                     try:
                         ifff = iff()[in_mod if in_mod != 'iff' else out_mod]['fac']
-                    except:
+                    except Exception as e:
+                        mdjlogger.error(e)
                         ifff = iff()[in_mod if in_mod != 'iff' else out_mod][data_type]
                     data_tpl, cols, data_store = data_tpl, ifff, 'facility_submissions'  # FacilitySubmissions
                     return data2col((data_tpl, cols, data_store, data_type), df)
@@ -147,15 +146,14 @@ def route_df(data_tupl):
 def upd8col_mappings(mdjlogger, incols, ioc_cols, in_mod):
     if ioc_cols:
         for incol, ioc_col in ((in_col.upper(), col) for in_col, col in zip(incols, ioc_cols)):
-            # mdjlogger.info('{} | {} | {}'.format(incol, ioc_col, in_mod))
+            ioc_field = IoCField.objects(name=ioc_col).first()
             try:
-                ioc_field = IoCField.objects(name=ioc_col).first()
                 inmode = InMode(in_mod)
                 if not ioc_field:
                     ioc_field = IoCField(name=ioc_col)
                     ioc_field.in_mode.append(inmode)
                 else:
-                    if not inmode in ioc_field.in_mode:
+                    if inmode not in ioc_field.in_mode:
                         # ioc_field.update(in_mode=list(set(ioc_field.in_mode + [in_mod])))
                         ioc_field.in_mode.append(inmode)
                 ioc_field.save()
@@ -165,8 +163,7 @@ def upd8col_mappings(mdjlogger, incols, ioc_cols, in_mod):
                 colmap = ColumnMapping(*(incol, ioc_field))
                 colmap.save()
             except Exception as e:
-                # mdjlogger.warning(e)
-                pass
+                mdjlogger.error(e)
     else:
         for incol in incols:
             try:
@@ -174,6 +171,17 @@ def upd8col_mappings(mdjlogger, incols, ioc_cols, in_mod):
                 colmap.save()
             except Exception as e:
                 mdjlogger.warning(e)
+
+
+def rez_corp_id(dp_ac: str, biz_reg_no: str, biz_name: str, cycle_ver: str) -> str:
+    if biz_reg_no not in ('', None):
+        _id = f"{dp_ac}-R-{biz_reg_no}"
+        logger.info(f"{_id=}")
+        return f"{_id}-{cycle_ver}"
+    if biz_name not in ('', None):
+        _id = f"{dp_ac}-C-{biz_name}"
+        logger.info(f"{_id=}")
+        return f"{_id}-{cycle_ver}"
 
 
 def prep_grntr_id(args):
@@ -188,44 +196,48 @@ def prep_grntr_id(args):
         {biz_name=}, {biz_reg_no=},
         {last_name=}, {first_name=}, {national_id_no=}, {drivin_license_no=}, {bvn=}, {i_pass_no=}'''
     )
-    id = f"{dpid}-{account_no}"
-    if grntr_type_check(grntr_type):
-        if biz_reg_no not in ('', None):
-            _id = f"{id}-R-{biz_reg_no}"
-            logger.info(f"{_id=}")
-            return f"{_id}-{cycle_ver}"
-        if biz_name not in ('', None):
-            _id = f"{id}-C-{biz_name}"
-            logger.info(f"{_id=}")
-            return f"{_id}-{cycle_ver}"
+    dp_ac = f"{dpid}-{account_no}"
+    if corp_grntr_type_check(grntr_type):
+        return rez_corp_id(dp_ac, biz_reg_no, biz_name, cycle_ver)
+    return rez_ndvdl_id(dp_ac, bvn, i_pass_no, drivin_license_no, national_id_no, last_name, first_name, cycle_ver)
+
+
+grntr_type_corp_abbrvxns = {"crp": "corporate", "corporate": "corporate", "002": "corporate", }
+
+
+def corp_grntr_type_check(grntr_type: str) -> str:
+    return grntr_type_corp_abbrvxns.get(grntr_type.lower()) == 'corporate'
+
+
+def grntr_typ(grntr_type: str) -> str:
+    return 'corporate' if grntr_type_corp_abbrvxns.get(grntr_type.lower()) == 'corporate' else 'individual'
+
+
+def rez_ndvdl_id(dp_ac: str, bvn: str, i_pass_no: str, drivin_license_no: str, national_id_no: str, last_name: str,
+                 first_name: str, cycle_ver: str) -> str:
     if bvn not in ('', None) and int(bvn) != 0:
-        _id = f"{id}-B-{bvn}"
+        _id = f"{dp_ac}-B-{bvn}"
         logger.info(f"{_id=}")
         return f"{_id}-{cycle_ver}"
     if i_pass_no not in ('', None):
-        _id = f"{id}-I-{i_pass_no}"
+        _id = f"{dp_ac}-I-{i_pass_no}"
         logger.info(f"{_id=}")
         return f"{_id}-{cycle_ver}"
     if drivin_license_no not in ('', None):
-        _id = f"{id}-D-{drivin_license_no}"
+        _id = f"{dp_ac}-D-{drivin_license_no}"
         logger.info(f"{_id=}")
         return f"{_id}-{cycle_ver}"
     if national_id_no not in ('', None):
-        _id = f"{id}-N-{national_id_no}"
+        _id = f"{dp_ac}-N-{national_id_no}"
         logger.info(f"{_id=}")
         return f"{_id}-{cycle_ver}"
     name = last_name if last_name not in ('', None) else first_name
     logger.info(f"{name=}")
     name2u = f"{last_name} {first_name}" if last_name not in ('', None) and first_name not in ('', None) else name
     if name2u not in ('', None):
-        _id = f"{id}-F-{name2u}"
+        _id = f"{dp_ac}-F-{name2u}"
         logger.info(f"{_id=}")
         return f"{_id}-{cycle_ver}"
-
-
-def grntr_type_check(grntr_type: str) -> str:
-    return 'corporate' if {"crp": "corporate", "corporate": "corporate",
-            }.get(grntr_type.lower()) == 'corporate' else 'individual'
 
 
 def prep_prnc_id(args):
@@ -234,31 +246,9 @@ def prep_prnc_id(args):
     cycle_ver, dpid, cust_id, last_name, first_name, national_id_no, drivin_license_no, bvn, i_pass_no = args
     logger.info(f"""{cycle_ver=}, {dpid=}, {cust_id=},
         {last_name=}, {first_name=}, {national_id_no=}, {drivin_license_no=}, {bvn=}, {i_pass_no=}"""
-    )
-    id = f"{dpid}-{cust_id}"
-    if bvn not in ('', None) and int(bvn) != 0:
-        _id = f"{id}-B-{bvn}"
-        logger.info(f"{_id=}")
-        return f"{_id}-{cycle_ver}"
-    if i_pass_no not in ('', None):
-        _id = f"{id}-I-{i_pass_no}"
-        logger.info(f"{_id=}")
-        return f"{_id}-{cycle_ver}"
-    if drivin_license_no not in ('', None):
-        _id = f"{id}-D-{drivin_license_no}"
-        logger.info(f"{_id=}")
-        return f"{_id}-{cycle_ver}"
-    if national_id_no not in ('', None):
-        _id = f"{id}-N-{national_id_no}"
-        logger.info(f"{_id=}")
-        return f"{_id}-{cycle_ver}"
-    name = last_name if last_name not in ('', None) else first_name
-    logger.info(f"{name=}")
-    name2u = f"{last_name} {first_name}" if last_name not in ('', None) and first_name not in ('', None) else name
-    if name2u not in ('', None):
-        _id = f"{id}-F-{name2u}"
-        logger.info(f"{_id=}")
-        return f"{_id}-{cycle_ver}"
+                )
+    dp_ac = f"{dpid}-{cust_id}"
+    return rez_ndvdl_id(dp_ac, bvn, i_pass_no, drivin_license_no, national_id_no, last_name, first_name, cycle_ver)
 
 
 def stream_grntr(_type: str, index_col: str, df: pd.DataFrame()):
@@ -270,12 +260,12 @@ def stream_grntr(_type: str, index_col: str, df: pd.DataFrame()):
     df = df[~df['_id'].isna()]
     df.fillna('', inplace=True)
     df.set_index('_id', inplace=True)
-    sub, typ = None, 'guarantor'
-    for ii in df.itertuples():
-        i = 0
+    df.loc[:, '_id'] = df.index
+    i, sub, typ, df_dict = 0, None, 'guarantor', df.to_dict('records')
+    for ii in df_dict:
         try:
-            d, i = ii._asdict(), i + 1
-            sub = grntr_type_check(d['grntr_type'])
+            d, i = ii, i + 1
+            sub = grntr_typ(d['grntr_type'])
             yield from stream_from(d, i, sub, typ)
         except Exception as e:
             logger.error(e)
@@ -294,24 +284,26 @@ def stream_prnc(_type: str, index_col: str, df: pd.DataFrame()):
     pdf = pdf[~pdf['_id'].isna()]
     pdf.fillna('', inplace=True)
     pdf.set_index('_id', inplace=True)
-    sub, typ = 'principal', 'officer'
-    for ii in pdf.itertuples():
-        i = 0
+    pdf.loc[:, '_id'] = pdf.index
+    i, sub, typ, pdf_dict = 0, 'principal', 'officer', pdf.to_dict('records')
+    for ii in pdf_dict:
         try:
-            d, i = ii._asdict(), i + 1
+            d, i = ii, i + 1
             yield from stream_from(d, i, sub, typ)
         except Exception as e:
             logger.error(e)
 
 
-def stream_from(d, i, sub, typ):
-    if not i % 35710: count_down(None, 5)
+def stream_from(d: dict, i: int, sub: str = None, typ: str = None):
+    if not i % 35710:
+        count_down(None, 5)
     d["submission"], d["type"] = sub if sub else d["submission"], typ if typ else d["type"]
     d["cycle_ver"] = int(d["cycle_ver"])
-    d["_id"], d["cy_dp"], d["sub_type"] = d['Index'], f'{d["cycle_ver"]}-{d["dpid"]}', f'{d["submission"]}-{d["type"]}'
-    del d['Index']
+    d["cy_dp"], d["sub_type"] = f'{d["cycle_ver"]}-{d["dpid"]}', f'{d["submission"]}-{d["type"]}'
     d = {i: d[i] for i in d if d[i] not in ('', 'none', None,) and i != 'ndx'}
     d["_index"], d['sub_cy'] = es_i, datetime.now()  # d["_type"] ='submissions'
+    if "_type" in d:
+        del d["_type"]
     yield d
 
 
@@ -326,15 +318,17 @@ def prep_sngl_col_id(args):
 
 
 def stream_df(_type, index_col, df):
-    i, ndx_flds = 0, ('cust_id', 'account_no', index_col, )
+    i, ndx_flds = 0, ('cust_id', 'account_no', index_col,)
     re_ndx_flds(df, ndx_flds)
     df.loc[:, '_id'] = df[['dpid', index_col, 'cust_id', 'account_no', 'cycle_ver', ]].apply(
         lambda x: prep_sngl_col_id(x), axis=1)
     df = df[~df[index_col].isin(['', None, ])]
     df.set_index('_id', inplace=True)
-    for ii in df.itertuples():
+    df.loc[:, '_id'] = df.index
+    sub, typ, df_dict = None, None, df.to_dict('records')
+    for ii in df_dict:
         try:
-            d, i = ii._asdict(), i + 1
+            d, i = ii, i + 1
             yield from stream_from(d, i, None, None)
         except Exception as e:
             logger.error(e)
@@ -344,7 +338,7 @@ def data2col(args, df):
     data_tpl, cols, data_store, datatype = args[:4]
     file_name, mdjlogger = data_tpl[0]['file_name'], get_logger(data_tpl[0]['dp_name'])
     data_batch_info, df_dtls = {}, DataFiles.objects(file_name=data_tpl[0]['file_name']).first()
-    df_dtls[datatype], data_tpl = df.shape[0], (*data_tpl, mdjlogger, )
+    df_dtls[datatype], data_tpl, ndx_nunique = df.shape[0], (*data_tpl, mdjlogger,), 0
     df_dtls.save()
     # todo
     # upd8col_mappings(mdjlogger, df.columns, cols, data_tpl[0]['in_mod'])
@@ -360,7 +354,7 @@ def data2col(args, df):
         df.replace(to_replace='N/A', value='', inplace=True)
         #
         if None in df.columns:
-            df = df[[c for c in df.columns if c != None]]
+            df = df[[c for c in df.columns if c]]
         df = df[[c for c in df.columns if 'unnamed' not in c.lower()]]
         df.columns = ps0 + xtr_cols if datatype in ps and len(df.columns) == len(ps0 + xtr_cols) else cols
         dpid, cycle_ver = data_tpl[0]['dpid'], data_tpl[0]['cycle_ver']
@@ -405,6 +399,7 @@ def data2col(args, df):
             else:
                 pass
         except Exception as e:
+            mdjlogger.error(e)
             data_batch_info[data_store.split('_')[0]] = df.shape[0]
         df_dtls.update(status=pro_stat)  # batch_no=batchID,
 
@@ -437,7 +432,7 @@ def indexDF(data_store, data_tpl, df, dp_name, mdjlogger):
                 df.loc[:, col] = df[col].apply(lambda x: str(x) if x else '')
             except Exception as e:
                 mdjlogger.error(f"Field Error: {e} in {col} field")
-    if data_store.split('_')[0] in ('facility'):
+    if data_store.split('_')[0] in ('facility',):
         # df = trnsfm_amts(data_tpl[0], df)
         df = normalize_amts(data_tpl[0], df)
     # df =
@@ -493,28 +488,28 @@ def bulkI(INDEX_NAME, bulk_data):
     return res
 
 
-def rezNDXerrors(data_d, data_store, data_tpl, ndx_d, res):
-    bulk_data, mdjlogger = [], get_logger(data_tpl[0]['dp_name'])
-    i, pbmv = 0, len(res['items'])
-    with progressbar.ProgressBar(max_value=pbmv) as progrbar:
-        for i_res in res['items']:
-            i += 1
-            if 'error' in i_res['index']:
-                error = i_res['index']['error']
-                field, xcpxn_cat, xcpxn_desc = error['reason'], 'Field Value Error', error['caused_by']['reason']
-                field = field[field.find('[') + 1:field.find(']')]
-                iid, sbjt = i_res['index']['_id'], False if data_store.split('_')[0] in ('facility',) else True
-                # todo R3Visit
-                # todo db_log_xcpxns(data_tpl[0], data_d[iid], rec_d[iid], (xcpxn_cat, xcpxn_desc,), sbjt, (field,))
-                del data_d[iid][field]
-                bulk_data.append(ndx_d[iid])
-                bulk_data.append(data_d[iid])
-                progrbar.update(i)
-
-    res = es.bulk(index=es_i, body=bulk_data, refresh=True)
-    if res['errors']:
-        mdjlogger.critical("Indexing Results:\n{}".format(json.dumps(res, indent=4)))
-    mdjlogger.info("Indexing Results:\n{}".format(json.dumps(res, indent=4)))
+# def rezNDXerrors(data_d, data_store, data_tpl, ndx_d, res):
+#     bulk_data, mdjlogger = [], get_logger(data_tpl[0]['dp_name'])
+#     i, pbmv = 0, len(res['items'])
+#     with progressbar.ProgressBar(max_value=pbmv) as progrbar:
+#         for i_res in res['items']:
+#             i += 1
+#             if 'error' in i_res['index']:
+#                 error = i_res['index']['error']
+#                 field, xcpxn_cat, xcpxn_desc = error['reason'], 'Field Value Error', error['caused_by']['reason']
+#                 field = field[field.find('[') + 1:field.find(']')]
+#                 iid, sbjt = i_res['index']['_id'], False if data_store.split('_')[0] in ('facility',) else True
+#                 # todo R3Visit
+#                 # todo db_log_xcpxns(data_tpl[0], data_d[iid], rec_d[iid], (xcpxn_cat, xcpxn_desc,), sbjt, (field,))
+#                 del data_d[iid][field]
+#                 bulk_data.append(ndx_d[iid])
+#                 bulk_data.append(data_d[iid])
+#                 progrbar.update(i)
+#
+#     res = es.bulk(index=es_i, body=bulk_data, refresh=True)
+#     if res['errors']:
+#         mdjlogger.critical("Indexing Results:\n{}".format(json.dumps(res, indent=4)))
+#     mdjlogger.info("Indexing Results:\n{}".format(json.dumps(res, indent=4)))
 
 
 @app.task(name='collect_dict')
@@ -536,8 +531,7 @@ def collect_dict(dp_name, data_type, in_mod, data_store, row_dict):
             elif data_type in ('corpfac', 'ndvdlfac', 'fac',):
                 rec_col.update(
                     {"dpid": row_dict['dpid'], "account_no": row_dict['account_no'],
-                     "cycle_ver": row_dict['cycle_ver']},
-                    {'$set': row_dict}, upsert=True
+                     "cycle_ver": row_dict['cycle_ver']}, {'$set': row_dict}, upsert=True
                 )
     except Exception as e:
         mdjlogger.info(e)
@@ -559,11 +553,9 @@ def gather_stats(data_tpl):
         if data_tpl[1] in ('comm', 'commsub',):
             # customer id
             cust_id_stats = df.cust_id.describe()
-            file_report_stats['t_corp_custs'], file_report_stats['u_corp_custs'] = cust_id_stats['count'], \
-                                                                                   cust_id_stats['unique']
-            # customer with no account
-            # this will be done during syndication
-            # rc number
+            file_report_stats['t_corp_custs'] = cust_id_stats['count']
+            file_report_stats['u_corp_custs'] = cust_id_stats['unique']
+            # customer with no account | this will be done during syndication | rc number
             df.columns.values[5] = 'biz_reg_no'
             rcno_stats = df.biz_reg_no.describe()
             file_report_stats['t_rc_nos'], file_report_stats['u_rc_nos'] = rcno_stats['count'], rcno_stats['unique']
@@ -574,8 +566,8 @@ def gather_stats(data_tpl):
             # need to do valid bvn
             # customer id
             cust_id_stats = df.cust_id.describe()
-            file_report_stats['t_indvdl_custs'], file_report_stats['u_indvdl_custs'] = cust_id_stats['count'], \
-                                                                                       cust_id_stats['unique']
+            file_report_stats['t_indvdl_custs'] = cust_id_stats['count']
+            file_report_stats['u_indvdl_custs'] = cust_id_stats['unique']
             # customer with no account
             # this will be done during syndication
 

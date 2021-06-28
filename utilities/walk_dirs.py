@@ -14,7 +14,7 @@ for src_dir, dirs, files in os.walk(root_src_dir):
         os.mkdir(dst_dir)
 
     if os.path.isdir(src_dir):
-        for src_dir, dirs, files in os.walk(src_dir):
+        for inner_src_dir, inner_dirs, inner_files in os.walk(src_dir):
             pass
 
 
