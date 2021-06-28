@@ -127,8 +127,7 @@ def fp_router(file_id):
         try:
             dpid = fl_dtls['dpid'] if fl_dtls['dpid'] else None
         except:
-            mdjlog.error(
-                '\tPlease maintain institution details for: {}'.format(fl_dtls['dp_name']))
+            mdjlog.error('\tPlease maintain institution details for: {}'.format(fl_dtls['dp_name']))
         mdjlog.info(fl_dtls)
         if dpid:
             fl_dtls.update(dpid=fl_dtls['dpid'])

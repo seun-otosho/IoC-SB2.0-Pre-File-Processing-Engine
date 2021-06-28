@@ -1,0 +1,7 @@
+id,code_name,header_code,file_type_code
+2,con,CON,001
+4,mfcon,MFCON,005
+1,com,COM,002
+3,mfcom,MFCOMM,010
+6,mgcon,MGCON,008
+5,mgcom,MGCOMM,009

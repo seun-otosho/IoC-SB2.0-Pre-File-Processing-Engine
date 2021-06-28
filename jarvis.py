@@ -45,7 +45,6 @@ def route_file(file_data):
         try:
             if file_data['xtra_nfo'].lower() == "data-loaded":
                 pass
-        except:
             if '_all' in file_name:
                 file_data.update(batch_no=getID())
                 xtrct_all_data(file_data.reload())  # data_pro_bat_no =
@@ -58,6 +57,8 @@ def route_file(file_data):
                     # get_file_set(file_data)  # get other files in set
                     # mdjlog.error("""\nHi\nWell done\nThe extension .xls for file {} is no longer supported.
                     #         Please save the file with .xlsx and let's do this again.\nThank you""".format(file_name))
+        except Exception as e:
+            mdjlog.error(e)
         return
     except Exception as e:
         mdjlog.error(e)
