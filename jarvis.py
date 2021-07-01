@@ -43,8 +43,11 @@ def route_file(file_data):
     try:
         file_name = file_data['file_name']
         try:
-            if file_data['xtra_nfo'].lower() == "data-loaded":
-                pass
+            try:
+                if file_data['xtra_nfo'].lower() == "data-loaded":
+                    pass
+            except Exception as e:
+                mdjlog.error(e)
             if '_all' in file_name:
                 file_data.update(batch_no=getID())
                 xtrct_all_data(file_data.reload())  # data_pro_bat_no =

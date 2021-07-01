@@ -243,16 +243,38 @@ def guarantee_cov():
 
 def guarantor_typ():
     return {
-        '1': '001',
-        '001': '001',
-        'individual': '001',
-        'personal': '001',
         '2': '002',
         '002': '002',
-        'corporate': '002',
-        'business entity': '002',
+        'individual': '002',
+        'personal': '002',
+        '1': '001',
+        '001': '001',
+        'corporate': '001',
+        'business entity': '001',
         # '003': '003',
         # 'Government Backed Guarantees': '003',
+    }
+
+
+def relation_type():
+    return {
+        "002": "006",
+        "003": "007",
+        "004": "008",
+        "005": "009",
+        "006": "010",
+        "007": "011",
+        "proprietor": "006",
+        "shareholder": "007",
+        "managing director": "008",
+        "executive director": "009",
+        "alternate director": "010",
+        "trustee": "011",
+        "holding company": "001",
+        "subsidiary company": "002",
+        "affiliate company": "003",
+        "associate company": "004",
+        "partner": "005",
     }
 
 

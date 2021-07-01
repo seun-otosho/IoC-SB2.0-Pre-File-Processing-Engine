@@ -15,7 +15,7 @@ import pandas as pd
 from elasticsearch import helpers
 
 from IoCEngine import xtrcxn_area
-from IoCEngine.SHU.trans4mas import df_d8s2str, gender_dict, grntr_typ
+from IoCEngine.SHU.trans4mas import df_d8s2str, gender_dict, grntr_typ, rlxn_typ
 from IoCEngine.commons import (fig_str, iff_sb2_modes, count_down, get_logger, mk_dir,
                                right_now, gs, ps, std_out, time_t)
 from IoCEngine.config.pilot import chunk_size, es, es_i, es_ii, mpcores
@@ -189,9 +189,8 @@ def syndidata(lz: tuple):
 
 
 def ps_vals(mdjlog, ps_data):
-    # missing account_no
-    # relationship type
-    # related biz name
+    ps_data.loc[:, "prnc_type"] = "002"
+    ps_data.loc[:, 'psxn_in_biz'] = ps_data.psxn_in_biz.apply(lambda x: rlxn_typ[x.lower()])
     ps_data.loc[:, 'pri_addr_typ'] = '001'
     df_d8s2str(ps_data, mdjlog)
 
@@ -677,8 +676,8 @@ def syndic8data(crdt_data, sbjt_data, meta_data, ctgry_dtls, datCat, dp_meta, b2
                          runnin_chunks_list, sbjt_data, sgmnt, submxn_pt, b2u, syndi_dir, chunk_mode)
             # p = mp.Process(target=syndi_chunk_pro, args=chnk_args, )
             # p.start()
-            # multi_pro(syndi_chunk_pro, chnk_args)
-            syndi_chunk_pro(*chnk_args)  # alt
+            multi_pro(syndi_chunk_pro, chnk_args)
+            # syndi_chunk_pro(*chnk_args)  # alt
 
         else:
             try:
@@ -691,11 +690,11 @@ def syndic8data(crdt_data, sbjt_data, meta_data, ctgry_dtls, datCat, dp_meta, b2
             args = (crdt_data, sbjt_data, meta_data, dp_meta, datCat, data_list_hdr, data_list_fn, b2u, syndi_dir,
                     chunk_mode,)
             #
-            # multi_pro(syndidata, [args])
-            syndidata(args)  # alt
+            multi_pro(syndidata, [args])
+            # syndidata(args)  # alt
             #
-        print('\n#YHVH')
-        mdjlog.info(fig_str("#YHVH"))
+        print('\n#YHWH')
+        mdjlog.info(fig_str("#YHWH"))
         return
 
     except Exception as e:
