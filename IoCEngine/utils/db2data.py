@@ -3,7 +3,7 @@ from elasticsearch import helpers
 from pandasticsearch import Select
 
 from IoCEngine.commons import (
-    cs, data_type_dict, fs, gs, ns, submission_type_dict, re_ndx_flds
+    cs, data_type_dict, fs, gs, ns, submission_type_dict, re_ndx_flds, profile
 )
 from IoCEngine.config.pilot import chunk_size as split_var, es, es_i
 from IoCEngine.logger import get_logger
@@ -48,6 +48,7 @@ def combo_data(dpid, loaded_batch, xtrcxn_zone):
     return False, None
 
 
+@profile
 def conf_df(loaded_batch, mdjlog, df, rez):
     if df is not None and not df.empty:
         # del df['batch_no'], df['cycle_ver'], df['dpid'], df['status']

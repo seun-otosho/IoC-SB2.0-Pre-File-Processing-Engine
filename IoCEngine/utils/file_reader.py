@@ -1,13 +1,10 @@
 import os
-from itertools import islice
 
-import numpy as np
-import openpyxl
 import pandas as pd
 
 from IoCEngine import drop_zone
 from IoCEngine.celeryio import app
-from IoCEngine.commons import mk_dp_x_dir, cs, ns
+from IoCEngine.commons import mk_dp_x_dir, profile
 from IoCEngine.data_router import worksheet_datatype as confirm_data
 from IoCEngine.logger import get_logger
 from IoCEngine.utils.data2db import route_df
@@ -64,9 +61,9 @@ def rw_file(dz, file, nums):
 
 
 @app.task(name='xtrct_ff_data')
-def xtrct_ff_data(file_meta, batch_no=None):
+def xtrct_ff_data(file_meta, batch_no=None, mdjlog=None):
     file = file_meta['file_name']
-    mdjlog = get_logger(file.split('_')[0])
+    mdjlog = mdjlog if mdjlog else get_logger(file.split('_')[0])
     cont, expected, line, saw = True, [], [], []
     
     while cont:
@@ -160,12 +157,13 @@ def handle_ff_xcpxn(e, expected, file, line, saw):
 
 
 @app.task(name='xtrct_ws_data')
-def xtrct_ws_data(file_meta: DataFiles):
-    mdjlog = get_logger(file_meta['file_name'].split('_')[0])
+def xtrct_ws_data(file_meta: DataFiles, mdjlog=None):
+    mdjlog = mdjlog if mdjlog else get_logger(file_meta['file_name'].split('_')[0])
     try:
         file = file_meta['file_name']
         mdjlog.info("Reading Data from WorkSheet from Data File {}".format(file))
-        df = pd.read_excel(drop_zone + file, pd.ExcelFile(drop_zone + file).sheet_names[0], dtype=str)
+        df = pd.read_excel(drop_zone + file, pd.ExcelFile(
+            drop_zone + file).sheet_names[0], dtype=str, thousands=",", engine='openpyxl', )
         df.drop_duplicates(inplace=True)
         if df.shape[0] > 0:
             mdjlog.info("Data Read with STATS {}".format(df.shape))
@@ -177,14 +175,14 @@ def xtrct_ws_data(file_meta: DataFiles):
         mdjlog.error(e)
 
 
-@app.task(name='xtrct_all_data')
-def xtrct_all_data(file_meta: DataFiles):
+@profile
+def xtrct_all_data(file_meta: DataFiles, mdjlog=None):
     try:
-        mdjlog = get_logger(file_meta['file_name'].split('_')[0].lower())
+        mdjlog = mdjlog if mdjlog else get_logger(file_meta['file_name'].split('_')[0].lower())
         try:
             file = file_meta['file_name']
             mdjlog.info("Reading ALL Data from SpeadSheets in Data File {}".format(file))
-            xlwb = pd.ExcelFile(drop_zone + file)
+            xlwb = pd.ExcelFile(drop_zone + file, engine='openpyxl')
             sh_names = xlwb.sheet_names
             mdjlog.info("data file worksheet names {}".format(sh_names))
             data_list = [confirm_data(name, file) for name in sh_names]
@@ -192,13 +190,13 @@ def xtrct_all_data(file_meta: DataFiles):
             mdjlog.info(data_list)
             for i, sgmnt in enumerate(data_list):
                 ws = sgmnt[1]
-                df = pd.read_excel(drop_zone + file, ws, dtype=str)
+                df = pd.read_excel(drop_zone + file, ws, dtype=str, thousands=",", )
                 df.drop_duplicates(inplace=True)
                 mdjlog.info('exiting. .. routing {} : {} data'.format(df.shape, sgmnt))
                 if df.shape[0] > 0:
                     mdjlog.info("Data Read from worksheet {} with STATS {}".format(ws, df.shape))
                     rez_dup(file_meta, df)
-                    route_df((file_meta, sgmnt[0], df))
+                    route_df((file_meta, sgmnt[0], df), mdjlogger=mdjlog)
                 else:
                     mdjlog.info('no data. ..')
             mdjlog.info('done. ..')

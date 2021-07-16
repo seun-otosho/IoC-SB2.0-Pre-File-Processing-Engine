@@ -3,6 +3,11 @@ from numbers import Real
 from IoCEngine.commons import get_logger
 
 
+def round_amt(x):
+    if x:
+        return round(float(x))
+
+
 def round_numbers_iono(num):
     try:
         if isinstance(num, float):
@@ -16,32 +21,32 @@ def round_numbers_iono(num):
         return num
 
 
-def round_amt(num):
-    mdjlog = get_logger(__name__)
-    xr = None
-    if num and (
-                str(num).replace(' ', '').replace('_', '').replace('-', '').replace(',', '').replace('.', '').isdigit()
-            or str(num).isdigit()
-    ):
-        if ' ' in str(num):
-            num = str(num).replace(' ', '')
-        try:
-            if ',' in str(num):
-                xr = int(abs(round(float(num.replace(',', '')))))
-            if type(num) == 'float':
-                xr = int(abs(round(float(num))))
-            if isinstance(num, float):  # '.' in str(num):
-                xr = int(abs(round(float(num))))
-            if isinstance(num, int):
-                xr = int(abs(round(num)))
-        except Exception as e:
-            mdjlog.error('{}'.format(e))
-    elif int(num) == 0:
-        return 0
-    else:
-        mdjlog.debug('{}'.format('returning zero'))
-        return 0
-    return xr
+# def round_amt(num):
+#     mdjlog = get_logger(__name__)
+#     xr = None
+#     if num and (
+#                 str(num).replace(' ', '').replace('_', '').replace('-', '').replace(',', '').replace('.', '').isdigit()
+#             or str(num).isdigit()
+#     ):
+#         if ' ' in str(num):
+#             num = str(num).replace(' ', '')
+#         try:
+#             if ',' in str(num):
+#                 xr = int(abs(round(float(num.replace(',', '')))))
+#             if type(num) == 'float':
+#                 xr = int(abs(round(float(num))))
+#             if isinstance(num, float):  # '.' in str(num):
+#                 xr = int(abs(round(float(num))))
+#             if isinstance(num, int):
+#                 xr = int(abs(round(num)))
+#         except Exception as e:
+#             mdjlog.error('{}'.format(e))
+#     elif int(num) == 0:
+#         return 0
+#     else:
+#         mdjlog.debug('{}'.format('returning zero'))
+#         return 0
+#     return xr
 
 
 def is_any_real_no(x):
@@ -58,16 +63,12 @@ def is_any_real_no(x):
 def normal_numbers(num):
     mdjlog = get_logger(__name__)
     if num:
-        try:
-            num = str(num).replace(' ', '').replace('_', '').replace('-', '').replace(',', '').strip()
-        except Exception as e:
-            mdjlog.error(f'{e}')
         if (
                     str(num).replace(' ', '').replace('_', '').replace('-', '').replace(',', '').replace('.',
                                                                                                          '').isdigit()
                 or str(num).isdigit()
         ):
-            # num = str(num).replace(' ', '').replace('_', '').replace('-', '').replace(',', '')
+            num = str(num).replace(' ', '').replace('_', '').replace('-', '').replace(',', '')
             num = float(num)  # if '.' in str(num) else int(num)
 
             if str(num) == '':
@@ -75,8 +76,7 @@ def normal_numbers(num):
             try:
 
                 if isinstance(num, (float, int, Real)):
-                    if 0 < num < 1:
-                        return 1
+                    if num > 0 and num < 1: return 1
                     return float(num)
                 """
                 if ',' in str(num) and '.' in str(num):
@@ -109,8 +109,7 @@ def normal_numbers(num):
                     num_count -= 1
                     if num_count == 1 and nnum is None:
                         nnum = 0.0
-                if 0 < nnum < 1:
-                    return 1
+                if nnum > 0 and nnum < 1: return 1
                 return nnum
 
     else:

@@ -1,14 +1,16 @@
 from __future__ import absolute_import
 
-import multiprocessing
 import os
 import os.path
 import random
 import string
 import sys
-import time
+# import time
 from datetime import datetime
+from functools import wraps
+from logging import Logger
 from random import randint
+from time import perf_counter, sleep
 
 import pyfiglet
 
@@ -16,6 +18,7 @@ from IoCEngine import xtrcxn_area
 from IoCEngine.logger import get_logger
 from IoCEngine.models import CtgryCode, DataProvider
 
+logger = get_logger()
 # db = sqlite3.connect('staging.db')
 
 # from commons import mk_dir
@@ -30,6 +33,7 @@ def right_now():
 
 def time_t():
     return datetime.now().strftime("%H%M")
+
 
 def ryna():
     return datetime.now().strftime("%y%b%d%H%M")
@@ -63,7 +67,7 @@ def mk_dir(my_dir_path, plof=None):
                         [os.rename(os.path.join(my_dir_path, fname), os.path.join(back_up_dir, fname)) for fname in
                          os.listdir(my_dir_path) if os.path.isfile(os.path.join(my_dir_path, fname))]
 
-                        time.sleep(16)
+                        sleep(16)
                         os.makedirs(os.path.dirname(my_dir_path))
                         mdjlog.info(my_dir_path)
                     except Exception as e:
@@ -96,12 +100,12 @@ def mk_dp_x_dir(dp_name):
 def count_down(dir: str = None, down_count: int = None, ):
     iW8, spcr = randint(1, 4), '\t' * 14
     for remaining in range(iW8, 0, -1):
-        d, s = '.'*remaining + ' '*5, 'seconds' if remaining > 1 else 'second'
+        d, s = '.' * remaining + ' ' * 5, 'seconds' if remaining > 1 else 'second'
         if dir:
-            std_out(f"{spcr}Please drop files in {dir} to be processed in {remaining} {s}. {d}")
+            std_out(f"{spcr}Drop your file(s) in {dir} to be processed in {remaining} {s}. {d}")
         elif down_count:
-            std_out(f"Please wait, we will continue in {remaining} {s}. {d}")
-        time.sleep(1)
+            std_out(f"Hold on, we move in {remaining} {s}. {d}")
+        sleep(1)
 
 
 def std_out(strv: str, nlv=None):
@@ -218,7 +222,7 @@ def dp_meta_data(dp_code_name=None):
         }
 
 
-def re_ndx_flds(df, ndx_flds, fillvar = None):
+def re_ndx_flds(df, ndx_flds, fillvar=None):
     for fld in [f for f in ndx_flds if f not in df]:
         df.loc[:, fld] = fillvar if fillvar else None
 
@@ -250,3 +254,48 @@ class dict_dotter(dict):
 
     def __repr__(self):
         return '<Dict Dotter ' + dict.__repr__(self) + '>'
+
+
+def m_or_s(completed=None, start=None):
+    ts = (completed - start).total_seconds() if completed and start else completed
+    if round(ts) > 3600:
+        h = 'hours' if ts >= 7200 else 'hour'
+        return f"{round(ts) // 3600} {h} and {round(ts % 3600)} minutes"
+    if round(ts) > 128:
+        m = 'minutes' if ts >= 120 else 'minute'
+        return f"{round(ts) // 60} {m} and {round(ts) % 60} seconds"
+    return f"{round(ts)} seconds" if round(ts) > 0 else f"{round(ts * 1000)} milliseconds"
+
+
+def profile(fn):
+    @wraps(fn)
+    def inner(*args, **kwargs):
+        global logger
+        fn_kwargs_str = ', '.join(f'{k}={v}' for k, v in kwargs.items() if not isinstance(v, Logger))
+        try:
+            logger = [a for a in args if isinstance(a, Logger)][0]
+        except Exception as e:
+            try:
+                logger = [v for k, v in kwargs.items() if isinstance(v, Logger)][0]
+            except Exception as e:
+                pass
+        # logger.info(f'\n{fn.__name__}({fn_kwargs_str})')
+
+        # Measure time
+        t = perf_counter()
+        retval = fn(*args, **kwargs)
+        # logger.info(fig_str("#288"))
+        # mem, retval = memory_usage((fn, args, kwargs), retval=True, timeout=200, interval=1e-7)
+        elapsed = perf_counter() - t
+        elapsed = m_or_s(elapsed)
+        logger.info(f'Profiling::{fn.__name__}({fn_kwargs_str})::~>Time {elapsed}')
+
+        # Measure memory
+        # logger.info(f'Profiling::{fn.__name__}({fn_kwargs_str})::~>Memory {max(mem) - min(mem)}')
+        return retval
+
+    return inner
+
+
+def init():
+    global curr_dp

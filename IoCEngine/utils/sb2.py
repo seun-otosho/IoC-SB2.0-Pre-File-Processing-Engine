@@ -14,16 +14,15 @@ import numpy as np
 import pandas as pd
 from elasticsearch import helpers
 
+from auto_bots import upd8batch
 from IoCEngine import xtrcxn_area
-from IoCEngine.SHU.trans4mas import df_d8s2str, gender_dict, grntr_typ, rlxn_typ
-from IoCEngine.commons import (fig_str, iff_sb2_modes, count_down, get_logger, mk_dir,
-                               right_now, gs, ps, std_out, time_t)
+from IoCEngine.commons import (
+    fig_str, iff_sb2_modes, count_down, get_logger, mk_dir, right_now, gs, ps, std_out, time_t, profile)
 from IoCEngine.config.pilot import chunk_size, es, es_i, es_ii, mpcores
-from IoCEngine.utils.data2db import corp_grntr_type_check
+from IoCEngine.SHU.trans4mas import df_d8s2str, gender_dict, grntr_typ, rlxn_typ
 from IoCEngine.utils.data_modes import iff
 from IoCEngine.utils.db2data import grntr_data, prnc_data
 from IoCEngine.utils.file import DataFiles, SB2FileInfo
-from auto_bots import upd8batch
 
 a, b, c = 1, 2, 3
 
@@ -198,11 +197,11 @@ def ps_vals(mdjlog, ps_data):
 def gs_vals(gs_data, mdjlog):
     gs_data.loc[:, 'grntr_type'] = gs_data.grntr_type.apply(lambda x: grntr_typ[x.lower()])
     gs_data.loc[:, 'incorp_date'] = gs_data[['grntr_type', 'birth_incorp_date']].apply(
-        lambda x: x[1] if corp_grntr_type_check(x[0]) else '', axis=1)
+        lambda x: x[1] if x[0] == '001' else '', axis=1)
     gs_data.loc[:, 'birth_date'] = gs_data[['grntr_type', 'birth_incorp_date']].apply(
-        lambda x: x[1] if not corp_grntr_type_check(x[0]) else '', axis=1)
+        lambda x: x[1] if x[0] == '002' else '', axis=1)
     gs_data['gender'] = gs_data[['grntr_type', 'gender']].apply(
-        lambda x: gender_dict.get(str(x[1]).strip().upper(), '') if not corp_grntr_type_check(x[0]) else '', axis=1)
+        lambda x: gender_dict.get(str(x[1]).strip().upper(), '') if x[0] == '002' else '', axis=1)
     gs_data.loc[:, 'pri_addr_typ'] = '001'
     df_d8s2str(gs_data, mdjlog)
 
@@ -236,7 +235,7 @@ def syndi_pairs(targs: tuple):
 
     if 'com' in dataCat:
         try:
-            ps_args = *targs[13:16], True, ['branch_code', 'cust_id', 'account_no'], 'cust_id', True
+            ps_args = *targs[13:16], True, ['branch_code', 'cust_id', 'account_no', 'biz_name', ], 'cust_id', True
             ps, ps_df = related_df(iff_sbjt_data, ps_args, mdjlog, meta_data)
         except Exception as e:
             mdjlog.error(f"{e=}")
@@ -267,7 +266,7 @@ def syndi_pairs(targs: tuple):
 
     dataFacCount, gsFacCount, acctGsCount, psCustCount, custPsCount, psCustList = 0, 0, 0, 0, 0, []
     for idx in iff_crdt_data.index:
-        mdjlog.info(f"PairinG data for Syndicate file {sb2file} & counting @#{dataFacCount + 1}_of_{crdt_shape}")
+        std_out(f"PairinG data for Syndicate file {sb2file} & counting @#{dataFacCount + 1}_of_{crdt_shape}\t\t")
         try:
             try:
                 cidx = int(idx) if (str(idx).isdigit() or isinstance(idx, (int, np.int64))
@@ -302,14 +301,14 @@ def syndi_pairs(targs: tuple):
 
             if 'com' in dataCat:
                 prnc_df = ps_df[ps_df.cust_id == custID2use].drop_duplicates() if ps else pd.DataFrame()
-                mdjlog.info(f"{prnc_df.empty=} {prnc_df.shape=}")
+                std_out(f"{prnc_df.empty=} {prnc_df.shape=}")
                 if not prnc_df.empty:
                     custPsCount, psCustCount, syndi_data_list = related_data_line(custPsCount, prnc_df, psCustCount,
                                                                                   syndi_data_list, mdjlog)
                     psCustList.append(custID2use)
 
             grntr_df = gs_df[gs_df.account_no == ac_no].drop_duplicates() if gs else pd.DataFrame()
-            mdjlog.info(f"{grntr_df.empty=} {grntr_df.shape=}")
+            std_out(f"{grntr_df.empty=} {grntr_df.shape=}")
             if not grntr_df.empty:
                 acctGsCount, gsFacCount, syndi_data_list = related_data_line(acctGsCount, grntr_df, gsFacCount,
                                                                              syndi_data_list, mdjlog)
@@ -319,7 +318,7 @@ def syndi_pairs(targs: tuple):
             log_syndi_pro(crdt_shape, dataFacCount, mdjlog, sb2file, len(syndi_data_list))
 
             if _idx:
-                std_out(f'PairinG {dp_name} data for file {sb2file} @ index {idx} of {crdt_shape} @{time_t()}')
+                std_out(f'PairinG {dp_name} data for file {sb2file} @ index {idx} of {crdt_shape} @{time_t()}\t\t')
         except Exception as e:
             mdjlog.error(f"{e} | customer ID {cust_id} with account no: {ac_no}")
 
@@ -350,6 +349,7 @@ def related_df(pri_df: pd.DataFrame, sec_args: tuple, mdjlog: Logger, meta_data)
             sec_df = sec_df.reindex(columns=sec_cols)
             sec_df.insert(0, 'dpid', meta_data['dpid'])
             sec_df.insert(0, 'segment', sec_sgmnt)
+            sec_df.drop_duplicates(inplace=True)
     except Exception as e:
         mdjlog.error(f"{svii}: {sec_sgmnt.upper()}'s Data was not provided hence: {e}")
     return sec, sec_df
@@ -365,7 +365,7 @@ def related_data_line(pri_count: int, df: pd.DataFrame, sec_count: int, data_lis
             except Exception as e:
                 logger.error(f"{e=}\t|\t{rw=}")
         pri_count += 1
-        logger.info(f"{sec_count=}\t|\t{pri_count=}")
+        std_out(f"{sec_count=}\t|\t{pri_count=}")
     except Exception as e:
         logger.error(f"{e=}")
     return pri_count, sec_count, data_list
@@ -606,8 +606,8 @@ def log_syndi_pro(crdt_shape: int, dataCount: int, mdjlog: Logger, sb2file: str,
     if log_check(crdt_shape, dataCount, mdjlog):
         try:
             msg = (f"PairinG data file {sb2file} & counting @#{dataCount} of {crdt_shape}"
-                   + f" | total syndicated is {syndi_count} @{time_t()}\n")
-            mdjlog.info(msg)
+                   + f" | total syndicated is {syndi_count} @{time_t()}\t\t\n")
+            std_out(msg)
         except Exception as e:
             mdjlog.error(e)
 
@@ -653,9 +653,9 @@ def upd8crdt_recs(largs: tuple, crdt_data: pd.DataFrame):
             mdjlog.error("{} | facility record: {}".format(e, crdt))
 
 
-# @logger.catch
-def syndic8data(crdt_data, sbjt_data, meta_data, ctgry_dtls, datCat, dp_meta, b2u, chunk_mode=None):
-    mdjlog, sb2files, tasks = get_logger(meta_data['dp_name']), [], []
+@profile
+def syndic8data(crdt_data, sbjt_data, meta_data, ctgry_dtls, datCat, dp_meta, b2u, chunk_mode=None, mdjlog=None):
+    mdjlog, sb2files, tasks = mdjlog if mdjlog else get_logger(meta_data['dp_name']), [], []
     file_dtls = DataFiles.objects(cycle_ver=meta_data['cycle_ver'], dpid=meta_data['dpid'], status='Loaded').first()
     file_dtls = file_dtls if file_dtls else DataFiles.objects(
         cycle_ver=meta_data['cycle_ver'], dpid=meta_data['dpid']).first()
@@ -706,6 +706,7 @@ def multi_pro(func, args):
     p.start()
 
 
+@profile
 def syndi_chunk_pro(crdt_data, ctgry_dtls, d8reported, datCat, data_size, dp_meta, dpid, mdjlog, meta_data,
                     runnin_chunks_list, sbjt_data, sgmnt, submxn_pt, b2u, syndi_dir, chunk_mode):
     rounds, size_done = data_size // chunk_size + 1, 0

@@ -116,7 +116,8 @@ def iff() -> dict:
                 'last_name', 'middle_name', 'first_name', 'full_name', 'prev_full_name', 'birth_date', 'gender',
                 'mrtl_stat',
 
-                'biz_name', 'prev_reg_biz_name', 'biz_corp_type', 'biz_category', 'biz_category2',
+                'biz_name', 'shrt_biz_name', 'prev_reg_biz_name', 'biz_corp_type', 'biz_category', 'biz_category2',
+                'biz_category3',
 
                 'pri_addr_typ', 'pri_addr_line1', 'pri_addr_line2', 'pri_addr_line3', 'pri_addr_city_lga',
                 'pri_addr_state', 'pri_addr_post_code', 'pri_addr_country',
@@ -343,17 +344,18 @@ def min_mndtry() -> dict:
 
 
 def amnt_fields() -> tuple:
-    f = ('approved_amt', 'disbursed_amt', 'disbursed_amt2date', 'outstanding_bal', 'instal_amt', 'annl_sal', 'int_rate',
+    f = ('approved_amt', 'disbursed_amt', 'disbursed_amt2date', 'outstanding_bal', 'instal_amt', 'annl_sal',
          'int_instal_amt', 'instal_amt', 'highest_crdt_amt', 'int_last_paid_amt', 'last_paid_amt', 'int_overdue_amt',
-         'overdue_amt', 'int_outstanding_amt', 'outstanding_amt', 'wrttn_off_amt', 'cycle_ver',)
+         'overdue_amt', 'int_outstanding_amt', 'outstanding_amt', 'wrttn_off_amt', )
     return f
 
 
-def number_fields():
-    return amnt_fields()
+def number_fields() -> tuple:
+    # return amnt_fields() + ('cycle_ver', 'int_rate',)
+    return 'cycle_ver', 'int_rate', 'int_overdue_days', 'overdue_days',
 
 
-def date_fields():
+def date_fields() -> tuple:
     f = ('maturity_date', 'litigxn_date', 'int_last_paid_date', 'last_paid_date', 'acct_clsd_date', 'd8_acct_stat',
          'd8_disbursed', 'consent_d8from', 'consent_d8to', 'd8_approved', 'amend_date', 'incorp_date', 'id_code1d8xpry',
          'id_code2d8xpry', 'birth_date', 'i_pass_expiry', 'bvn_d8xpry', 'biz_d8reg', 'birth_incorp_date', 'birth_date1',
@@ -361,7 +363,7 @@ def date_fields():
     return f
 
 
-def dates_and_number_fields():
+def dates_and_number_fields() -> tuple:
     return date_fields() + number_fields()
 
 

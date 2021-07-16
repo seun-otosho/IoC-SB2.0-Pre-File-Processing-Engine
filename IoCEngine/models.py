@@ -1,10 +1,4 @@
-import sqlalchemy as sa
-from datetime import datetime
-from flask_migrate import Migrate
-from flask_migrate import MigrateCommand
-from flask_user import UserMixin
-from sqlalchemy import Column, Integer, String
-# from sqlalchemy_continuum import make_versioned
+
 
 from IoCEngine import db
 

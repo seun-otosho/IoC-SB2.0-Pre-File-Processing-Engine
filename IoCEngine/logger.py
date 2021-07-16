@@ -33,7 +33,7 @@ class MyFunctionLogFilter(Filter):
 
 
 dcrtd_frmtr = Formatter('%(process)s - %(thread)s @ %(asctime)s {%(name)s:%(lineno)5d - '
-                                '%(func_name)30s() ~> %(funcName)s()} %(levelname)s - %(message)s')
+                        '%(func_name)15s() ~> %(funcName)s()} %(levelname)s - %(message)s')
 
 
 def get_logger(logger_name=None, func_name=None, funcname=True, level=level, mini=False):
@@ -57,7 +57,7 @@ def get_logger(logger_name=None, func_name=None, funcname=True, level=level, min
             formatter = Formatter(
                 # '%(processName)s : %(process)s | %(threadName)s : %(thread)s:\n'
                 '%(process)s - %(thread)s @ '
-                '%(asctime)s {%(name)s:%(lineno)d  - %(funcName)20s()} %(levelname)s - %(message)s')
+                '%(asctime)s {%(name)s:%(lineno)d  - %(funcName)15s()} %(levelname)s - %(message)s')
         # '[%(asctime)s] - {%(name)s:%(lineno)d  - %(funcName)20s()} - %(levelname)s - %(message)s')
         # fileHandler = TimedRotatingFileHandler(log_dir + '%s.log' % logger_name, mode='a')
         log_dir2use = log_dir + sep  # + logger_name + sep
@@ -77,7 +77,6 @@ def get_logger(logger_name=None, func_name=None, funcname=True, level=level, min
         loggers.update(dict(name=logger_name))
 
         return l
-
 
 # def get_logger(logger_name=None, level=level):
 #     global loggers

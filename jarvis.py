@@ -15,7 +15,8 @@ from IoCEngine import drop_zone
 from IoCEngine.SHU.trans4mas import corp_vals, ndvdl_vals, fac_vals
 from IoCEngine.celeryio import app
 from IoCEngine.commons import (all_all_modes, all_corp_modes, all_ndvdl_modes, cf, cs, fs, nf, ns, getID,
-                               mk_dir, mk_dp_x_dir, cdt_udf_modes, sngl_sbjt_in_modes, sgmnt_def, g_meta, gs, ps)
+                               mk_dir, mk_dp_x_dir, cdt_udf_modes, sngl_sbjt_in_modes, sgmnt_def, g_meta, gs, ps,
+                               profile)
 from IoCEngine.config.pilot import chunk_size as split_var
 from IoCEngine.cores import ppns
 from IoCEngine.logger import get_logger
@@ -35,7 +36,7 @@ mk_dir(drop_zone)
 
 
 @app.task(name='route_file')
-def route_file(file_data):
+def route_file(file_data, mdjlog=None):
     mdjlog = get_logger(file_data['dp_name'])
     if isinstance(file_data, str):
         file_data = DataFiles.objects.get(id=file_data)
@@ -50,13 +51,13 @@ def route_file(file_data):
                 mdjlog.error(e)
             if '_all' in file_name:
                 file_data.update(batch_no=getID())
-                xtrct_all_data(file_data.reload())  # data_pro_bat_no =
+                xtrct_all_data(file_data.reload(), mdjlog=mdjlog)  # data_pro_bat_no =
             elif file_data['data_type'] in cs + fs + gs + ns + ps + ('combo',):
                 if file_name.lower().endswith(('.csv', '.txt')):
-                    xtrct_ff_data(file_data)  # data_pro_bat_no =
+                    xtrct_ff_data(file_data, mdjlog=mdjlog)  # data_pro_bat_no =
                     # get_file_set(file_data)  # get other files in set
                 if file_name.lower().endswith(('.xls', '.xlsx', )):
-                    xtrct_ws_data(file_data)  # data_pro_bat_no =
+                    xtrct_ws_data(file_data, mdjlog=mdjlog)  # data_pro_bat_no =
                     # get_file_set(file_data)  # get other files in set
                     # mdjlog.error("""\nHi\nWell done\nThe extension .xls for file {} is no longer supported.
                     #         Please save the file with .xlsx and let's do this again.\nThank you""".format(file_name))
@@ -68,14 +69,14 @@ def route_file(file_data):
     return
 
 
-@app.task(name='route_filed_data')
-def route_filed_data(file_data):
+@profile
+def route_filed_data(file_data, mdjlog=None):
     cycle_ver, dpid = file_data["cycle_ver"], file_data["dpid"]
     dp_name, load3Dbatch, loaded_batches = '', None, DataBatchProcess.objects(
         cycle_ver=cycle_ver, dpid=dpid, status='Loaded')  # .first()
     loaded_batch = [ld for ld in loaded_batches if ld.data_type == file_data.data_type][0]
     combo, combo_df, corp, corp_df, corpfac, corpfac_df, ndvdl, ndvdl_df, ndvdlfac, ndvdlfac_df = re_init_vars()
-    Bs2u, mdjlog, syndibatch = [], get_logger(loaded_batches[0]['dp_name']), getID()
+    Bs2u, mdjlog, syndibatch = [], mdjlog if mdjlog else get_logger(loaded_batches[0]['dp_name']), getID()
     load3DSegments = list(chain.from_iterable([lb['segments'] for lb in loaded_batches]))
     load3DSgmnts = []
     for sgmnt in load3DSegments:
@@ -108,7 +109,7 @@ def route_filed_data(file_data):
         else:
             try:
                 corp, corp_df, corpfac, corpfac_df, ndvdl, ndvdl_df, ndvdlfac, ndvdlfac_df = rez_single_data(
-                    corp, corpfac, ndvdl, ndvdlfac, dpid, loaded_batch, load3DSegments)
+                    corp, corpfac, ndvdl, ndvdlfac, dpid, loaded_batch, load3DSegments, mdjlog=mdjlog)
             except Exception as e:
                 mdjlog.error(e)
     else:
@@ -118,7 +119,7 @@ def route_filed_data(file_data):
             Bs2u.append(loaded_batch)
             try:
                 corp, corp_df, corpfac, corpfac_df, ndvdl, ndvdl_df, ndvdlfac, ndvdlfac_df = rez_combined_data(
-                    corp, corpfac, dpid, loaded_batch, ndvdl, ndvdlfac)
+                    corp, corpfac, dpid, loaded_batch, ndvdl, ndvdlfac, mdjlog=mdjlog)
             except Exception as e:
                 mdjlog.error(e)
         if loaded_batch['data_type'] in ('combo',):
@@ -245,6 +246,7 @@ def re_init_vars():
     return combo, combo_df, corp, corp_df, corpfac, corpfac_df, ndvdl, ndvdl_df, ndvdlfac, ndvdlfac_df
 
 
+@profile
 def handle_individual_data(dp_name, load3Db, mdjlog, ndvdl, ndvdl_df, ndvdlfac, ndvdlfac_df, ndx_column, b2u,
                            chunk_mode=None):
     try:
@@ -278,12 +280,14 @@ def handle_individual_data(dp_name, load3Db, mdjlog, ndvdl, ndvdl_df, ndvdlfac, 
                 """)
             datCat = 'con'
             ctgry_dtls, dp_meta = g_meta(datCat, dp_name, load3Db)
-            syndifiles = syndic8data(ndvdlfac2df, ndvdl2df, load3Db, ctgry_dtls, datCat, dp_meta, b2u, chunk_mode)
+            syndifiles = syndic8data(ndvdlfac2df, ndvdl2df, load3Db, ctgry_dtls, datCat, dp_meta, b2u, chunk_mode,
+                                     mdjlog=mdjlog)
             # upd8batch(load3Dbatch, batches2use)  # , sb2file, syndifiles
     except Exception as e:
         mdjlog.error(e)
 
 
+@profile
 def handle_corporate_data(dp_name, load3Db, mdjlog, corp, corp_df, corpfac, corpfac_df, ndx_column, b2u,
                           chunk_mode=None):
     try:
@@ -311,18 +315,16 @@ def handle_corporate_data(dp_name, load3Db, mdjlog, corp, corp_df, corpfac, corp
             corporate subject count is {corp2df.shape[0]}""")
             datCat = 'com'
             ctgry_dtls, dp_meta = g_meta(datCat, dp_name, load3Db)
-            syndifiles = syndic8data(corpfac2df, corp2df, load3Db, ctgry_dtls, datCat, dp_meta, b2u, chunk_mode)  #:
+            syndifiles = syndic8data(corpfac2df, corp2df, load3Db, ctgry_dtls, datCat, dp_meta, b2u, chunk_mode,
+                                     mdjlog=mdjlog)  #:
             # upd8batch(load3Dbatch, batches2use)  # , syndifiles
     except Exception as e:
         mdjlog.error(e)
 
 
-# def now_index(df):
-#     df['_id'] = df['_id'].apply(lambda x: '-'.join(x.split('-')[:-1]))
-#     pass
-
-def rez_combined_data(corp, corpfac, dpid, loaded_batch, ndvdl, ndvdlfac):
-    mdjlog = get_logger(loaded_batch['dp_name'])
+@profile
+def rez_combined_data(corp, corpfac, dpid, loaded_batch, ndvdl, ndvdlfac, mdjlog=None):
+    mdjlog = mdjlog if mdjlog else get_logger(loaded_batch['dp_name'])
     load3DSegments = loaded_batch['segments']
     mdjlog.info(load3DSegments)
     ndx_column = 'cust_id' if loaded_batch['in_mod'] in cdt_udf_modes else 'account_no'
@@ -367,8 +369,9 @@ def rez_combo_data(combo, combo_df, dpid, loaded_batch):
     return combo, combo_df
 
 
-def rez_single_data(corp, corpfac, ndvdl, ndvdlfac, dpid, loaded_batch, load3DSegments):
-    mdjlog, load3DSegments = get_logger(loaded_batch['dp_name']), list(set(load3DSegments))
+@profile
+def rez_single_data(corp, corpfac, ndvdl, ndvdlfac, dpid, loaded_batch, load3DSegments, mdjlog=None):
+    mdjlog, load3DSegments = mdjlog if mdjlog else get_logger(loaded_batch['dp_name']), list(set(load3DSegments))
     mdjlog.info(load3DSegments)
     ndx_column = 'cust_id' if loaded_batch['in_mod'] in cdt_udf_modes else 'account_no'
     corpfac2df, ndvdlfac2df = None, None
@@ -424,8 +427,9 @@ def rez_single_data(corp, corpfac, ndvdl, ndvdlfac, dpid, loaded_batch, load3DSe
     return corp, corp_df, corpfac, corpfac2df, ndvdl, ndvdl_df, ndvdlfac, ndvdlfac2df
 
 
-def rez_single_data_cf(corp, corpfac, ndvdl, ndvdlfac, dpid, loaded_batch, load3DSegments):
-    mdjlog, load3DSegments = get_logger(loaded_batch['dp_name']), list(set(load3DSegments))
+@profile
+def rez_single_data_cf(corp, corpfac, ndvdl, ndvdlfac, dpid, loaded_batch, load3DSegments, mdjlog=None):
+    mdjlog, load3DSegments = mdjlog if mdjlog else get_logger(loaded_batch['dp_name']), list(set(load3DSegments))
     ndx_column = 'cust_id' if loaded_batch['in_mod'] in cdt_udf_modes else 'account_no'
     corpfac2df, ndvdlfac2df = None, None
     if any(x in cs for x in load3DSegments) and loaded_batch['status'] == 'Loaded':
