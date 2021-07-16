@@ -79,6 +79,9 @@ def syndidata(lz: tuple):
         loaded_batch = meta_data
         sbjt_data.fillna('', inplace=True)
         crdt_data.fillna('', inplace=True)
+        crdt_data.drop_duplicates('account_no', inplace=True)
+        crdt_data.set_index('account_no', inplace=True, verify_integrity=True)
+        crdt_data['account_no'] = crdt_data.index
 
         try:
             loaded_gs = [sgmnt for sgmnt in [b for b in b2u] if sgmnt.segments[0] in gs or gs[0] in sgmnt][0]
@@ -732,6 +735,8 @@ def syndi_chunk_pro(crdt_data, ctgry_dtls, d8reported, datCat, data_size, dp_met
             mdjlog.error(e)
     pool = mp.Pool(processes=mpcores)
     pool.map(syndidata, runnin_chunks_list)
+    # for running_chunk in runnin_chunks_list: alt
+    #     syndidata(running_chunk)
     return
 
 
