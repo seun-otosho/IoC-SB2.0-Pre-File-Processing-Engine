@@ -265,8 +265,8 @@ def syndi_pairs(targs: tuple):
     iff_sbjt_data.fillna('', inplace=True)
 
     dataFacCount, gsFacCount, acctGsCount, psCustCount, custPsCount, psCustList = 0, 0, 0, 0, 0, []
+    std_out(f"PairinG data for Syndicate file {sb2file} & counting @#{dataFacCount + 1}_of_{crdt_shape}\t\t")
     for idx in iff_crdt_data.index:
-        std_out(f"PairinG data for Syndicate file {sb2file} & counting @#{dataFacCount + 1}_of_{crdt_shape}\t\t")
         try:
             try:
                 cidx = int(idx) if (str(idx).isdigit() or isinstance(idx, (int, np.int64))
@@ -301,14 +301,14 @@ def syndi_pairs(targs: tuple):
 
             if 'com' in dataCat:
                 prnc_df = ps_df[ps_df.cust_id == custID2use].drop_duplicates() if ps else pd.DataFrame()
-                std_out(f"{prnc_df.empty=} {prnc_df.shape=}")
+                # std_out(f"{prnc_df.empty=} {prnc_df.shape=}")
                 if not prnc_df.empty:
                     custPsCount, psCustCount, syndi_data_list = related_data_line(custPsCount, prnc_df, psCustCount,
                                                                                   syndi_data_list, mdjlog)
                     psCustList.append(custID2use)
 
             grntr_df = gs_df[gs_df.account_no == ac_no].drop_duplicates() if gs else pd.DataFrame()
-            std_out(f"{grntr_df.empty=} {grntr_df.shape=}")
+            # std_out(f"{grntr_df.empty=} {grntr_df.shape=}")
             if not grntr_df.empty:
                 acctGsCount, gsFacCount, syndi_data_list = related_data_line(acctGsCount, grntr_df, gsFacCount,
                                                                              syndi_data_list, mdjlog)

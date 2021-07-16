@@ -310,26 +310,21 @@ def dict_df_amt_flds(d: dict) -> tuple:
 
 @profile
 def stream_df(_type, index_col, df):
-    i, ndx_flds = 0, ('cust_id', 'account_no', index_col,)
+    i, ndx_flds = 1, ('cust_id', 'account_no', index_col,)
     re_ndx_flds(df, ndx_flds)
-    df['_id'] = df[['dpid', index_col, 'cust_id', 'account_no', 'cycle_ver', ]].apply(
-        lambda x: prep_sngl_col_id(x), axis=1)
+    df['_id'] = df[['dpid', index_col, 'cust_id', 'account_no', 'cycle_ver', ]].apply(prep_sngl_col_id, axis=1)
     df = df[~df[index_col].isin(['', None, ])]
     df = df[~df.index.isna()]
     df.set_index('_id', inplace=True)
     df['_id'] = df.index
     sub, typ, df_dict = None, None, df.to_dict('records')
-    for ii in df_dict:
+    for d in df_dict:
         try:
-            d, i = ii, i + 1
-            # if _type.split('_')[0] == 'facility':
-            #     for fld in dict_df_amt_flds(d):
-            #         dict_amt_flds(d, fld)
-            # for fld in dict_df_d8flds(d):
-            #     dict_d8flds(d, fld)
-            yield from stream_from(d, i, None, None)
+            yield from stream_from(d, None, None)
         except Exception as e:
             logger.error(e)
+        std_out(f"Indexing. .. _: {d['_id']} @{i} OF {df.shape[0]}\t\t")
+        i += 1
 
 
 @profile
@@ -338,24 +333,21 @@ def stream_grntr(_type: str, index_col: str, df: pd.DataFrame()):
         'cycle_ver', 'dpid', 'account_no', 'grntr_type',
         'biz_name', 'biz_reg_no',
         'last_name', 'first_name', 'national_id_no', 'drivin_license_no', 'bvn', 'i_pass_no',
-    ]].apply(lambda x: prep_grntr_id(x), axis=1)
+    ]].apply(prep_grntr_id, axis=1)
     df = df[~df['_id'].isna()]
     df = df[~df.index.isna()]
     df.fillna('', inplace=True)
     df.set_index('_id', inplace=True)
     df['_id'] = df.index
-    i, sub, typ, df_dict = 0, None, 'guarantor', df.to_dict('records')
-    for ii in df_dict:
+    i, sub, typ, df_dict = 1, None, 'guarantor', df.to_dict('records')
+    for d in df_dict:
         try:
-            d, i = ii, i + 1
-            # # for fld in (f for f in d if f in amnt_fields()):
-            # #     dict_amt_flds(d, fld)
-            # for fld in (f for f in d if f in date_fields()):
-            #     dict_d8flds(d, fld)
             sub = grntr_typ(d['grntr_type'])
-            yield from stream_from(d, i, sub, typ)
+            yield from stream_from(d, sub, typ)
         except Exception as e:
             logger.error(e)
+        std_out(f"Indexing. .. _: {d['_id']} @{i} OF {df.shape[0]}\t\t")
+        i += 1
 
 
 @profile
@@ -368,28 +360,23 @@ def stream_prnc(_type: str, index_col: str, df: pd.DataFrame()):
     pdf1.columns = ps0 + psa + xtr_cols
     pdf = pd.concat([pdf0, pdf1])
     pdf['_id'] = pdf[['cycle_ver', 'dpid', 'cust_id', 'last_name', 'first_name', 'national_id_no',
-                             'drivin_license_no', 'bvn', 'i_pass_no', ]].apply(lambda x: prep_prnc_id(x), axis=1)
+                      'drivin_license_no', 'bvn', 'i_pass_no', ]].apply(prep_prnc_id, axis=1)
     pdf = pdf[~pdf['_id'].isna()]
     pdf = pdf[~pdf.index.isna()]
     pdf.fillna('', inplace=True)
     pdf.set_index('_id', inplace=True)
     pdf['_id'] = pdf.index
-    i, sub, typ, pdf_dict = 0, 'principal', 'officer', pdf.to_dict('records')
-    for ii in pdf_dict:
+    i, sub, typ, pdf_dict = 1, 'principal', 'officer', pdf.to_dict('records')
+    for d in pdf_dict:
         try:
-            d, i = ii, i + 1
-            # # for fld in (f for f in d if f in amnt_fields()):
-            # #     dict_amt_flds(d, fld)
-            # for fld in (f for f in d if f in date_fields()):
-            #     dict_d8flds(d, fld)
-            yield from stream_from(d, i, sub, typ)
+            yield from stream_from(d, sub, typ)
         except Exception as e:
             logger.error(e)
+        std_out(f"Indexing. .. _: {d['_id']} @{i} OF {pdf.shape[0]}\t\t")
+        i += 1
 
 
-def stream_from(d: dict, i: int, sub: str = None, typ: str = None):
-    if not i % 35710:
-        count_down(None, 5)
+def stream_from(d: dict, sub: str = None, typ: str = None):
     d["submission"], d["type"] = sub if sub else d["submission"], typ if typ else d["type"]
     d["cycle_ver"] = int(d["cycle_ver"])
     d["cy_dp"], d["sub_type"] = f'{d["cycle_ver"]}-{d["dpid"]}', f'{d["submission"]}-{d["type"]}'
@@ -397,7 +384,6 @@ def stream_from(d: dict, i: int, sub: str = None, typ: str = None):
     d["_index"], d['sub_cy'] = es_i, datetime.now()  # d["_type"] ='submissions'
     if "_type" in d:
         del d["_type"]
-    std_out(f"Indexing. .. _: {d['_id']} @{i+1}")
     yield d
 
 

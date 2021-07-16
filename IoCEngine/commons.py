@@ -268,6 +268,7 @@ def m_or_s(completed=None, start=None):
 
 
 def profile(fn):
+    logger = get_logger()
     @wraps(fn)
     def inner(*args, **kwargs):
         global logger
