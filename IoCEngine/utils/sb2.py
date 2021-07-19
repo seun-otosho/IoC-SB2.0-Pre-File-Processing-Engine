@@ -713,29 +713,21 @@ def syndic8data(crdt_data, sbjt_data, meta_data, ctgry_dtls, datCat, dp_meta, b2
 
 def multi_pro(func, args):
     logger = get_logger()
-    logger.info(f"{args=}")
     try:
-        cores = args[1]
-    except Exception as e:
-        logger.warn(e)
-        cores = None
-    if isinstance(cores, int):
-        try:
-            runnin_chunks_list, chunks = args[0], len(args[0])
-            i, logger = 1, get_logger(args[2]['dp_name'])
-            logger.info(f"About to moved {chunks=} over {cores=}")
-            pool = mp.Pool(processes=cores2u)
-            pool.map(syndidata, runnin_chunks_list)
-            # with mp.Pool(processes=cores2u) as pool:
-            #     pool.map(syndidata, args)
-            #     logger.info(f"Moving::Round{i=} {len(args)=} over {cores=}")
-            logger.info(f"Just moved {chunks=} over {cores=}")
-        except Exception as e:
-            logger.warn(e)
-    else:
         p = mp.Process(target=func, args=args, )
         p.start()
-        return True
+    except Exception as e:
+        logger.warn(e)
+    return True
+
+
+def multi_list_pro(args):
+    logger = get_logger()
+    chunks = len(args)
+    logger.info(f"About to moved { chunks=} over {cores2u=}")
+    pool = Pool(processes=cores2u)
+    pool.map(syndidata, args)
+    logger.info(f"Just moved { chunks=} over {cores2u=}")
 
 
 @profile
@@ -766,8 +758,8 @@ def syndi_chunk_pro(crdt_data, ctgry_dtls, d8reported, datCat, data_size, dp_met
     # pool = Pool(processes=cores2u)
     # pool.map(syndidata, runnin_chunks_list)
     # # args2mp = (runnin_chunks_list, cores2u, )
-    # # p = mp.Process(target=multi_pro, args=args2mp, )
-    # # p.start()
+    p = mp.Process(target=multi_list_pro, args=[runnin_chunks_list], )
+    p.start()
     # # multi_pro(syndidata, runnin_chunks_list, cores2u)
     # chunks = len(runnin_chunks_list)
     # start, step = 0, cores2u
