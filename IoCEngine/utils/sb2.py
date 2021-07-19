@@ -1,13 +1,14 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-
-
+import concurrent
 import inspect
 import multiprocessing as mp
 import re
 import unicodedata
+from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
 from logging import Logger
+from multiprocessing.pool import Pool
 from os import sep
 
 import numpy as np
@@ -18,7 +19,7 @@ from auto_bots import upd8batch
 from IoCEngine import xtrcxn_area
 from IoCEngine.commons import (
     fig_str, iff_sb2_modes, count_down, get_logger, mk_dir, right_now, gs, ps, std_out, time_t, profile)
-from IoCEngine.config.pilot import chunk_size, es, es_i, es_ii, mpcores
+from IoCEngine.config.pilot import chunk_size, es, es_i, es_ii, cores2u
 from IoCEngine.SHU.trans4mas import df_d8s2str, gender_dict, grntr_typ, rlxn_typ
 from IoCEngine.utils.data_modes import iff
 from IoCEngine.utils.db2data import grntr_data, prnc_data
@@ -546,31 +547,37 @@ def upd8DFstatus(df, dp_name, es_i, es_t):
     for idx in df.index:
         try:
             rwd = df.iloc[idx]  # todo df.ix[idx]
+            # mdjlog.info(f"{rwd=}")
+        except Exception as e:
+            # mdjlog.error(e)
+            rwd = df.loc[idx]
+            # mdjlog.info(f"{rwd=}")
+
             # if isinstance(rwd['_id'], pd.series.Series): pass
             # data_line = {'status': status} if isinstance(status, str) else {**status}
-            ndx_line = {'_index': es_i, '_op_type': 'update', '_type': es_t,
-                        '_id': rwd['_id'] if isinstance(rwd['_id'], str) else rwd['_id'].iloc[0]
-                , 'doc': {'status': rwd['status'] if isinstance(rwd['status'], str) else rwd['status'].iloc[0],
-                          'sb2file': rwd['sb2file'] if isinstance(rwd['sb2file'], str) else rwd['sb2file'].iloc[0]
-                          }}
-            bulk_upd8_data.append(ndx_line)
-            if len(bulk_upd8_data) == 7895:
-                try:
-                    bulk_upd8_data = gener8(bulk_upd8_data)
-                    helpers.bulk(es, bulk_upd8_data)
-                    es.indices.refresh()
-                    bulk_upd8_data = []
-                except Exception as e:
-                    # pass
-                    # mdjlog.error(e)
-                    count_down(None, 1)
-                    helpers.bulk(es, bulk_upd8_data)
-                    # es.indices.refresh()
-                    bulk_upd8_data = []
-        except Exception as e:
-            mdjlog.error(e)
-            bulk_upd8_data = []
+        ndx_line = {'_index': es_i, '_op_type': 'update',  # '_type': es_t,
+                    '_id': rwd['_id'] if isinstance(rwd['_id'], str) else rwd['_id'].iloc[0]
+            , 'doc': {'status': rwd['status'] if isinstance(rwd['status'], str) else rwd['status'].iloc[0],
+                      'sb2file': rwd['sb2file'] if isinstance(rwd['sb2file'], str) else rwd['sb2file'].iloc[0]
+                      }}
+        bulk_upd8_data.append(ndx_line)
+        if len(bulk_upd8_data) == 7895:
+            try:
+                bulk_upd8_data = gener8(bulk_upd8_data)
+                helpers.bulk(es, bulk_upd8_data)
+                es.indices.refresh()
+                bulk_upd8_data = []
+            except Exception as e:
+                # pass
+                # mdjlog.error(e)
+                count_down(None, 1)
+                helpers.bulk(es, bulk_upd8_data)
+                es.indices.refresh()
+                bulk_upd8_data = []
+
+            # bulk_upd8_data = []
             # pass
+
     bulk_upd8_data = list(bulk_upd8_data) if not isinstance(bulk_upd8_data, list) else bulk_upd8_data
     if len(bulk_upd8_data) > 0:
         count_down(None, 1)
@@ -679,8 +686,8 @@ def syndic8data(crdt_data, sbjt_data, meta_data, ctgry_dtls, datCat, dp_meta, b2
                          runnin_chunks_list, sbjt_data, sgmnt, submxn_pt, b2u, syndi_dir, chunk_mode)
             # p = mp.Process(target=syndi_chunk_pro, args=chnk_args, )
             # p.start()
-            multi_pro(syndi_chunk_pro, chnk_args)
-            # syndi_chunk_pro(*chnk_args)  # alt
+            # multi_pro(syndi_chunk_pro, chnk_args)
+            syndi_chunk_pro(*chnk_args)  # alt
 
         else:
             try:
@@ -693,8 +700,8 @@ def syndic8data(crdt_data, sbjt_data, meta_data, ctgry_dtls, datCat, dp_meta, b2
             args = (crdt_data, sbjt_data, meta_data, dp_meta, datCat, data_list_hdr, data_list_fn, b2u, syndi_dir,
                     chunk_mode,)
             #
-            multi_pro(syndidata, [args])
-            # syndidata(args)  # alt
+            # multi_pro(syndidata, [args])
+            syndidata(args)  # alt
             #
         print('\n#YHWH')
         mdjlog.info(fig_str("#YHWH"))
@@ -705,8 +712,30 @@ def syndic8data(crdt_data, sbjt_data, meta_data, ctgry_dtls, datCat, dp_meta, b2
 
 
 def multi_pro(func, args):
-    p = mp.Process(target=func, args=args, )
-    p.start()
+    logger = get_logger()
+    logger.info(f"{args=}")
+    try:
+        cores = args[1]
+    except Exception as e:
+        logger.warn(e)
+        cores = None
+    if isinstance(cores, int):
+        try:
+            runnin_chunks_list, chunks = args[0], len(args[0])
+            i, logger = 1, get_logger(args[2]['dp_name'])
+            logger.info(f"About to moved {chunks=} over {cores=}")
+            pool = mp.Pool(processes=cores2u)
+            pool.map(syndidata, runnin_chunks_list)
+            # with mp.Pool(processes=cores2u) as pool:
+            #     pool.map(syndidata, args)
+            #     logger.info(f"Moving::Round{i=} {len(args)=} over {cores=}")
+            logger.info(f"Just moved {chunks=} over {cores=}")
+        except Exception as e:
+            logger.warn(e)
+    else:
+        p = mp.Process(target=func, args=args, )
+        p.start()
+        return True
 
 
 @profile
@@ -726,17 +755,32 @@ def syndi_chunk_pro(crdt_data, ctgry_dtls, d8reported, datCat, data_size, dp_met
             data_list_fn, data_list_hdr = syndi_params(ctgry_dtls, d8reported, dpid, mdjlog, sgmnt, submxn_pt)
 
             runnin_chunks_list.append(
-                (crdt_data_chunk, sbjt_df, meta_data, dp_meta, datCat, data_list_hdr, data_list_fn, b2u, syndi_dir))
+                (crdt_data_chunk, sbjt_df, meta_data, dp_meta, datCat, data_list_hdr, data_list_fn, b2u, syndi_dir,
+                 mdjlog))
             size_done += size2use
             mdjlog.info(
                 "\nQueuinG! #{} of {} Counts: {} of {} of {}".format(idx, rcount, size2use, size_done, data_size))
             count_down(None, 1)
         except Exception as e:
             mdjlog.error(e)
-    pool = mp.Pool(processes=mpcores)
-    pool.map(syndidata, runnin_chunks_list)
-    # for running_chunk in runnin_chunks_list: alt
-    #     syndidata(running_chunk)
+    # pool = Pool(processes=cores2u)
+    # pool.map(syndidata, runnin_chunks_list)
+    # # args2mp = (runnin_chunks_list, cores2u, )
+    # # p = mp.Process(target=multi_pro, args=args2mp, )
+    # # p.start()
+    # # multi_pro(syndidata, runnin_chunks_list, cores2u)
+    # chunks = len(runnin_chunks_list)
+    # start, step = 0, cores2u
+    # for i in range(chunks // cores2u):
+    #     rez = [multi_pro(syndidata, chunk) for chunk in runnin_chunks_list[start:step]]
+    #     i+=1; start, step = start+cores2u, step+cores2u
+    # #
+    # # start = datetime.now()
+    # # with concurrent.futures.ProcessPoolExecutor(max_workers=cores2u) as executor:
+    # #     for i, j in zip(runnin_chunks_list, executor.map(syndidata, runnin_chunks_list)):
+    # #         timenow = datetime.now()
+    # #         print(f"{i=} @ {timenow.strftime('%H:%M:%S')} total duration is {(timenow - start).total_seconds()}")
+
     return
 
 

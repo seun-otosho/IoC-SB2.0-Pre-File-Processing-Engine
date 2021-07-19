@@ -3,6 +3,10 @@ import os
 
 from elasticsearch import Elasticsearch
 
+# from IoCEngine.logger import get_logger
+#
+# logger = get_logger()
+
 DEBUG = True
 # IGNORE_AUTH = False
 SECRET_KEY = 'e3dcc2d78da6ceb302da66ff5a09b7f5eae0ff616ca8d710a52a4bf7a0672ef29cfe603d4ddfeccbc9525f6fb175a69fbc' \
@@ -120,6 +124,8 @@ dSet = dSetting(8,1)
 EsSetup(conEs,'idxName','docTypeName',dset,dMap)
 '''
 
-chunk_size = 45789  # 1000  #
+chunk_size = 12357  # 40123  #45789  #
 
-mpcores = round(multiprocessing.cpu_count() / 3)
+cores = multiprocessing.cpu_count()
+cores2u = round(cores / 3)
+print(f"{cores=}\t|\t{cores2u=}\t|\t{chunk_size=}")

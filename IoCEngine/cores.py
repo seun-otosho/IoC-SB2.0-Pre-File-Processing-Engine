@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from IoCEngine.commons import count_down, get_logger
-from IoCEngine.config.pilot import mpcores
+from IoCEngine.config.pilot import cores2u
 
 mdjlogger = get_logger('jarvis')
 

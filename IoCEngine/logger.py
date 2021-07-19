@@ -6,6 +6,9 @@ from os.path import abspath, exists, split, splitext
 
 from IoCEngine import level, log_dir
 
+dcrtd_frmtr = Formatter('%(process)s - %(thread)s @ %(asctime)s {%(name)s:%(lineno)5d - '
+                        '%(func_name)14s() ~> %(funcName)18s()} %(levelname)s - %(message)s')
+
 loggers = {}
 
 
@@ -14,8 +17,6 @@ def module_logger():
     file, ext = splitext(filename)
     return file
 
-
-# In[17]:
 
 class MyFunctionLogFilter(Filter):
 
@@ -30,10 +31,6 @@ class MyFunctionLogFilter(Filter):
         except:
             record.func_name = self.func_name
         return True
-
-
-dcrtd_frmtr = Formatter('%(process)s - %(thread)s @ %(asctime)s {%(name)s:%(lineno)5d - '
-                        '%(func_name)14s() ~> %(funcName)18s()} %(levelname)s - %(message)s')
 
 
 def get_logger(logger_name=None, func_name=None, funcname=True, level=level, mini=False):

@@ -313,7 +313,7 @@ def stream_df(_type, index_col, df):
     i, ndx_flds = 1, ('cust_id', 'account_no', index_col,)
     re_ndx_flds(df, ndx_flds)
     df['_id'] = df[['dpid', index_col, 'cust_id', 'account_no', 'cycle_ver', ]].apply(prep_sngl_col_id, axis=1)
-    df = df[~df[index_col].isin(['', None, ])]
+    df = df[~df['_id'].isin(['', None, ])]
     df = df[~df.index.isna()]
     df.set_index('_id', inplace=True)
     df['_id'] = df.index
