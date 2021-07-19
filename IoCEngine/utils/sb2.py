@@ -80,9 +80,6 @@ def syndidata(lz: tuple):
         loaded_batch = meta_data
         sbjt_data.fillna('', inplace=True)
         crdt_data.fillna('', inplace=True)
-        crdt_data.drop_duplicates('account_no', inplace=True)
-        crdt_data.set_index('account_no', inplace=True, verify_integrity=True)
-        crdt_data['account_no'] = crdt_data.index
 
         try:
             loaded_gs = [sgmnt for sgmnt in [b for b in b2u] if sgmnt.segments[0] in gs or gs[0] in sgmnt][0]
@@ -270,6 +267,10 @@ def syndi_pairs(targs: tuple):
 
     dataFacCount, gsFacCount, acctGsCount, psCustCount, custPsCount, psCustList = 0, 0, 0, 0, 0, []
     std_out(f"PairinG data for Syndicate file {sb2file} & counting @#{dataFacCount + 1}_of_{crdt_shape}\t\t")
+    shape_str = f"StartinG::{crdt_data.shape=}\t|\tEnrich3D::{iff_crdt_data.shape}\t"
+    iff_crdt_data.drop_duplicates('account_no', inplace=True)
+    shape_str += f"|\tDeDuplicat3D::{iff_crdt_data.shape}"
+    mdjlog.info(shape_str)
     for idx in iff_crdt_data.index:
         try:
             try:
@@ -319,7 +320,7 @@ def syndi_pairs(targs: tuple):
 
             syndicaxn_complt = True
 
-            log_syndi_pro(crdt_shape, dataFacCount, mdjlog, sb2file, len(syndi_data_list))
+            # log_syndi_pro(crdt_shape, dataFacCount, mdjlog, sb2file, len(syndi_data_list)) not sure why
 
             if _idx:
                 std_out(f'PairinG {dp_name} data for file {sb2file} @ index {idx} of {crdt_shape} @{time_t()}\t\t')
