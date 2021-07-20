@@ -540,20 +540,41 @@ def indexDF(data_store, data_tpl, df, dp_name, mdjlogger):
     # df.to_excel(f"{dp_name} {data_type}'s segment for {data_tpl[0]['cycle_ver']} data cycle.xlsx")  # todo remove
     df.fillna('', inplace=True)
     if _type == 'guarantors':
-        df_stream = stream_grntr(_type, 'ndx', df)
+        # df_stream = stream_grntr(_type, 'ndx', df)
+        try:
+            mdjlogger.info("#IndexinG!")
+            bulk_resp = helpers.bulk(es, stream_grntr(_type, 'ndx', df), refresh=True)
+            mdjlogger.info(f"{bulk_resp=}")
+            mdjlogger.info(". .. about {} {} data indexed".format(df.shape[0], data_type))
+        except Exception as e:
+            mdjlogger.error(f"{e=}")
     elif _type == 'principal_officers':
-        df_stream = stream_prnc(_type, 'ndx', df)
+        # df_stream = stream_prnc(_type, 'ndx', df)
+        try:
+            mdjlogger.info("#IndexinG!")
+            bulk_resp = helpers.bulk(es, stream_prnc(_type, 'ndx', df), refresh=True)
+            mdjlogger.info(f"{bulk_resp=}")
+            mdjlogger.info(". .. about {} {} data indexed".format(df.shape[0], data_type))
+        except Exception as e:
+            mdjlogger.error(f"{e=}")
     else:
-        df_stream = stream_df(_type, ndx, df)
+        # df_stream = stream_df(_type, ndx, df)
+        try:
+            mdjlogger.info("#IndexinG!")
+            bulk_resp = helpers.bulk(es, stream_df(_type, ndx, df), refresh=True)
+            mdjlogger.info(f"{bulk_resp=}")
+            mdjlogger.info(". .. about {} {} data indexed".format(df.shape[0], data_type))
+        except Exception as e:
+            mdjlogger.error(f"{e=}")
 
-    try:
-        mdjlogger.info("#IndexinG!")
-        bulk_resp = helpers.bulk(es, df_stream, refresh=True)
-        mdjlogger.info(f"{bulk_resp=}")
-        # es.indices.refresh()
-        mdjlogger.info(". .. about {} {} data indexed".format(df.shape[0], data_type))
-    except Exception as e:
-        mdjlogger.error(f"{e=}")
+    # try:
+    #     mdjlogger.info("#IndexinG!")
+    #     bulk_resp = helpers.bulk(es, df_stream, refresh=True)
+    #     mdjlogger.info(f"{bulk_resp=}")
+    #     # es.indices.refresh()
+    #     mdjlogger.info(". .. about {} {} data indexed".format(df.shape[0], data_type))
+    # except Exception as e:
+    #     mdjlogger.error(f"{e=}")
     #
     return data_type  # , df
 

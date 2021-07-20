@@ -13,14 +13,15 @@ from os import sep
 
 import numpy as np
 import pandas as pd
-from elasticsearch import helpers
-
 from auto_bots import upd8batch
+from elasticsearch import helpers
 from IoCEngine import xtrcxn_area
-from IoCEngine.commons import (
-    fig_str, iff_sb2_modes, count_down, get_logger, mk_dir, right_now, gs, ps, std_out, time_t, profile)
-from IoCEngine.config.pilot import chunk_size, es, es_i, es_ii, cores2u
-from IoCEngine.SHU.trans4mas import df_d8s2str, gender_dict, grntr_typ, rlxn_typ
+from IoCEngine.commons import (count_down, fig_str, get_logger, gs,
+                               iff_sb2_modes, mk_dir, profile, ps, right_now,
+                               std_out, time_t)
+from IoCEngine.config.pilot import chunk_size, cores2u, es, es_i, es_ii
+from IoCEngine.SHU.trans4mas import (df_d8s2str, gender_dict, grntr_typ,
+                                     rlxn_typ)
 from IoCEngine.utils.data_modes import iff
 from IoCEngine.utils.db2data import grntr_data, prnc_data
 from IoCEngine.utils.file import DataFiles, SB2FileInfo
@@ -269,6 +270,7 @@ def syndi_pairs(targs: tuple):
     std_out(f"PairinG data for Syndicate file {sb2file} & counting @#{dataFacCount + 1}_of_{crdt_shape}\t\t")
     shape_str = f"StartinG::{crdt_data.shape=}\t|\tEnrich3D::{iff_crdt_data.shape}\t"
     iff_crdt_data.drop_duplicates('account_no', inplace=True)
+    iff_crdt_data.reset_index(drop=True, inplace=True)
     shape_str += f"|\tDeDuplicat3D::{iff_crdt_data.shape}"
     mdjlog.info(shape_str)
     for idx in iff_crdt_data.index:
@@ -279,7 +281,12 @@ def syndi_pairs(targs: tuple):
             except Exception as e:
                 mdjlog.error(e)
 
-            ac_no, _idx = iff_crdt_data.iloc[idx]['account_no'], not cidx % 55 or not cidx % 77 or not cidx % 88
+            try:
+                ac_no, _idx = iff_crdt_data.iloc[idx]['account_no'], not cidx % 55 or not cidx % 77 or not cidx % 88
+            except Exception as e:
+                mdjlog.error(e)
+                ac_no, _idx = iff_crdt_data.loc[idx]['account_no'], not cidx % 55 or not cidx % 77 or not cidx % 88
+                mdjlog.error(f"{ac_no=}, {_idx=}")
 
             try:
                 subj = iff_sbjt_data.loc[iff_sbjt_data['account_no'] == ac_no]
@@ -320,7 +327,7 @@ def syndi_pairs(targs: tuple):
 
             syndicaxn_complt = True
 
-            # log_syndi_pro(crdt_shape, dataFacCount, mdjlog, sb2file, len(syndi_data_list)) not sure why
+            log_syndi_pro(crdt_shape, dataFacCount, mdjlog, sb2file, len(syndi_data_list))
 
             if _idx:
                 std_out(f'PairinG {dp_name} data for file {sb2file} @ index {idx} of {crdt_shape} @{time_t()}\t\t')
@@ -617,7 +624,7 @@ def log_syndi_pro(crdt_shape: int, dataCount: int, mdjlog: Logger, sb2file: str,
     if log_check(crdt_shape, dataCount, mdjlog):
         try:
             msg = (f"PairinG data file {sb2file} & counting @#{dataCount} of {crdt_shape}"
-                   + f" | total syndicated is {syndi_count} @{time_t()}\t\t\n")
+                   + f" | total syndicated PAIRS are {syndi_count} @{time_t()}\t\t\n")
             std_out(msg)
         except Exception as e:
             mdjlog.error(e)
@@ -725,7 +732,7 @@ def multi_pro(func, args):
 def multi_list_pro(args):
     logger = get_logger()
     chunks = len(args)
-    logger.info(f"About to moved { chunks=} over {cores2u=}")
+    logger.info(f"About to move { chunks=} over {cores2u=}")
     pool = Pool(processes=cores2u)
     pool.map(syndidata, args)
     logger.info(f"Just moved { chunks=} over {cores2u=}")
@@ -743,8 +750,8 @@ def syndi_chunk_pro(crdt_data, ctgry_dtls, d8reported, datCat, data_size, dp_met
             ndx_column = 'cust_id' if meta_data['in_mod'] in ('cdt', 'udf',) else 'account_no'
             sbjt_df = sbjt_data[sbjt_data[ndx_column].isin(crdt_data_chunk[ndx_column])]
             # crdt_data_chunk = crdt_data_chunk[crdt_data_chunk[ndx_column].isin(sbjt_df[ndx_column])]  # todo remove
-            mdjlog.info("\n\nsyndicating CHUNK. .. \n\t{} credits with \n\t{} subjects".format(crdt_data_chunk.shape,
-                                                                                               sbjt_df.shape))
+            mdjlog.info("""
+            \nsyndicating CHUNK. .. \n\t{crdt_data_chunk.shape} credits with \n\t{sbjt_df.shape} subjects""")
             data_list_fn, data_list_hdr = syndi_params(ctgry_dtls, d8reported, dpid, mdjlog, sgmnt, submxn_pt)
 
             runnin_chunks_list.append(
