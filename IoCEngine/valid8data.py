@@ -185,15 +185,3 @@ def db_log_xcpxns(btch, dd, rec, xcpxn_desc):
     except Exception as e:
         mdjlog.error(e)
 
-
-"""
-
-dp_name = ''
-dpid = ''
-cyle_ver
-cust_id = ''
-account_no
-fields = []
-exception = ''
-
-"""

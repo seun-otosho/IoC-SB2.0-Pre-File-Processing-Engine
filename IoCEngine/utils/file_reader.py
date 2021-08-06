@@ -19,10 +19,10 @@ def rw_file(dz, file, nums):
         f = open(os.path.join(dz, file), "rb")
         orgnl_l = f.read().splitlines()
         f.close()
-        
+
         bad_f.append(orgnl_l[0].decode("unicode_escape").strip())
         now_orgnl_l.append(orgnl_l[0].decode("unicode_escape").strip())
-        
+
         for i, lo in enumerate(orgnl_l):
             if i > 0:
                 lo_pop = orgnl_l.pop(i)
@@ -40,7 +40,7 @@ def rw_file(dz, file, nums):
                 except Exception as e:
                     print(e)
                     print(lo_pop)
-        
+
         dp_name = file.split('_')[0].upper()
         unprocessed = mk_dp_x_dir(dp_name.upper() + os.sep + 'unprocessed')
         badf = open(unprocessed + os.sep + file.replace('.', '_bad.'), 'w')
@@ -65,7 +65,7 @@ def xtrct_ff_data(file_meta, batch_no=None, mdjlog=None):
     file = file_meta['file_name']
     mdjlog = mdjlog if mdjlog else get_logger(file.split('_')[0])
     cont, expected, line, saw = True, [], [], []
-    
+
     while cont:
         try:
             if not 'df' in locals():
@@ -157,18 +157,21 @@ def handle_ff_xcpxn(e, expected, file, line, saw):
 
 
 @app.task(name='xtrct_ws_data')
-def xtrct_ws_data(file_meta: DataFiles, mdjlog=None):
+def xtrct_ws_data(file_meta: DataFiles, sgmnt: tuple = None, mdjlog=None):
     mdjlog = mdjlog if mdjlog else get_logger(file_meta['file_name'].split('_')[0])
     try:
         file = file_meta['file_name']
-        mdjlog.info("Reading Data from WorkSheet from Data File {}".format(file))
-        df = pd.read_excel(drop_zone + file, pd.ExcelFile(
-            drop_zone + file).sheet_names[0], dtype=str, thousands=",", engine='openpyxl', )
-        df.drop_duplicates(inplace=True)
+        mdjlog.info(f"Reading Data from {file} Data File")
+        if sgmnt:
+            dt, ws = sgmnt
+        else:
+            dt, ws = file_meta['data_type'], pd.ExcelFile(drop_zone + file).sheet_names[0]
+        df = pd.read_excel(drop_zone + file, ws, dtype=str, thousands=",", engine='openpyxl', )
+        # df.drop_duplicates(inplace=True)
         if df.shape[0] > 0:
-            mdjlog.info("Data Read with STATS {}".format(df.shape))
+            mdjlog.info(f"Data Read from {ws} worksheet with STATS {df.shape}")
             rez_dup(file_meta, df)
-            route_df((file_meta, file_meta['data_type'], df))
+            route_df((file_meta, dt, df), mdjlogger=mdjlog)
         else:
             mdjlog.info('no data. ..')
     except Exception as e:
@@ -189,73 +192,22 @@ def xtrct_all_data(file_meta: DataFiles, mdjlog=None):
             data_list = [data_item for data_item in data_list if data_item is not None]
             mdjlog.info(data_list)
             for i, sgmnt in enumerate(data_list):
-                ws = sgmnt[1]
-                df = pd.read_excel(drop_zone + file, ws, dtype=str, thousands=",", )
-                df.drop_duplicates(inplace=True)
-                mdjlog.info('exiting. .. routing {} : {} data'.format(df.shape, sgmnt))
-                if df.shape[0] > 0:
-                    mdjlog.info("Data Read from worksheet {} with STATS {}".format(ws, df.shape))
-                    rez_dup(file_meta, df)
-                    route_df((file_meta, sgmnt[0], df), mdjlogger=mdjlog)
-                else:
-                    mdjlog.info('no data. ..')
+                # ws = sgmnt[1]
+
+                xtrct_ws_data(file_meta, sgmnt, mdjlog)
+
+                # df = pd.read_excel(drop_zone + file, ws, dtype=str, thousands=",", )
+                # # df.drop_duplicates(inplace=True)
+                # mdjlog.info('exiting. .. routing {} : {} data'.format(df.shape, sgmnt))
+                # if df.shape[0] > 0:
+                #     mdjlog.info("Data Read from worksheet {} with STATS {}".format(ws, df.shape))
+                #     rez_dup(file_meta, df)
+                #     route_df((file_meta, sgmnt[0], df), mdjlogger=mdjlog)
+                # else:
+                #     mdjlog.info('no data. ..')
+
             mdjlog.info('done. ..')
         except Exception as e:
             mdjlog.error(e)
     except Exception as e:
         mdjlog.error(e)
-
-# legacy
-# @app.task(name='xtrct_all_data')
-# def xtrct_all_data(file_meta, lgcy):
-#     try:
-#         mdjlog = get_logger(file_meta['file_name'].split('_')[0].lower())
-#         try:
-#             file = file_meta['file_name']
-#             mdjlog.info("Reading ALL Data from SpeadSheets in Data File {}".format(file))
-#             xlwb = openpyxl.load_workbook(drop_zone + file, data_only=True)
-#             sh_names = xlwb.get_sheet_names()
-#             mdjlog.info("\ndata file worksheet names {}\n".format(sh_names))
-#             data_list = [confirm_data(name, file) for name in sh_names]
-#             data_list = [data_item for data_item in data_list if data_item is not None]
-#             mdjlog.info(data_list)
-#             for i, sgmnt in enumerate(data_list):
-#                 ws = xlwb.get_sheet_by_name(data_list[i][1])
-#                 datal = list(ws.values)
-#                 cols = next(ws.values)[:]
-#                 datai = (islice(r, 0, None) for r in datal)
-#                 df = pd.DataFrame(datai, columns=cols, index=None)
-#                 mdjlog.info('exiting. .. routing {} : {} data'.format(df.shape, sgmnt))
-#                 if df.shape[0] > 0:
-#                     mdjlog.info("Data Read from worksheet {} with STATS {}".format(data_list[i][1], df.shape))
-#                     rez_dup(file_meta, df)
-#                     route_df((file_meta, sgmnt[0], df))
-#                 else:
-#                     mdjlog.info('no data. ..')
-#             mdjlog.info('exiting. ..')
-#         except Exception as e:
-#             mdjlog.error(e)
-#     except Exception as e:
-#         mdjlog.error(e)
-
-# @app.task(name='xtrct_ws_data')
-# def xtrct_ws_data(file_meta, batch_no=None):
-#     mdjlog = get_logger(file_meta['file_name'].split('_')[0])
-#     try:
-#         file = file_meta['file_name']
-#         mdjlog.info("Reading Data from WorkSheet from Data File {}".format(file))
-#         xlwb = openpyxl.load_workbook(drop_zone + file, data_only=True)
-#         sh_names = xlwb.get_sheet_names()
-#         ws = xlwb.get_sheet_by_name(sh_names[0])
-#         data = list(ws.values)
-#         cols = next(ws.values)[:]  # todo override this
-#         data = (islice(r, 0, None) for r in data[1:])
-#         df = pd.DataFrame(data, columns=cols)
-#         if df.shape[0] > 0:
-#             mdjlog.info("Data Read with STATS {}".format(df.shape))
-#             rez_dup(file_meta, df)
-#             return route_df((file_meta, file_meta['data_type'], df))
-#         else:
-#             mdjlog.info('no data. ..')
-#     except Exception as e:
-#         mdjlog.error(e)

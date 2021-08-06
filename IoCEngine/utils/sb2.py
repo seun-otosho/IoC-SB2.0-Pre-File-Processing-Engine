@@ -1,11 +1,9 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-import concurrent
 import inspect
 import multiprocessing as mp
 import re
 import unicodedata
-from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
 from logging import Logger
 from multiprocessing.pool import Pool
@@ -18,7 +16,7 @@ from elasticsearch import helpers
 from IoCEngine import xtrcxn_area
 from IoCEngine.commons import (count_down, fig_str, get_logger, gs,
                                iff_sb2_modes, mk_dir, profile, ps, right_now,
-                               std_out, time_t)
+                               std_out, time_t, multi_pro)
 from IoCEngine.config.pilot import chunk_size, cores2u, es, es_i, es_ii
 from IoCEngine.SHU.trans4mas import (df_d8s2str, gender_dict, grntr_typ,
                                      rlxn_typ)
@@ -90,6 +88,7 @@ def syndidata(lz: tuple):
             grntr = not gs_data.empty
         except Exception as e:
             mdjlog.error(e)
+
         try:
             if datCat == 'com':
                 loaded_ps = [sgmnt for sgmnt in [b for b in b2u] if sgmnt.segments[0] in ps or ps[0] in sgmnt][0]
@@ -229,6 +228,7 @@ def syndi_pairs(targs: tuple):
     if meta_data['in_mod'] not in iff_sb2_modes:
         branch_code_df = sbjt_data[['cust_id', 'branch_code']]
         account_no_df = crdt_data[['cust_id', 'account_no']]
+        crdt_data = crdt_data[[c for c in crdt_data.columns if c not in 'branch_code']]
         crdt_data = pd.merge(crdt_data, branch_code_df, on='cust_id', how='inner')
         sbjt_data = sbjt_data[[c for c in sbjt_data if c != 'account_no']]
         iff_sbjt_data = pd.merge(account_no_df, sbjt_data, on='cust_id', how='inner')
@@ -406,13 +406,13 @@ def re4index(ac_no_list: list, crdt_data: pd.DataFrame, cust_id_list: list, data
              sbjt_data: pd.DataFrame) -> tuple:
     syndi_crdt_data = crdt_data[crdt_data.account_no.isin(ac_no_list)]
     syndi_crdt_data.loc[:, 'sb2file'], syndi_crdt_data.loc[:, 'status'] = sb2file, 'Syndicated'
-    syndi_crdt_data.loc[:, '_index'] = es_i  # , syndi_crdt_data.loc[:, '_type'], 'submissions'
-    syndi_crdt_data = syndi_crdt_data[['_index', '_id', 'sb2file', 'status']]  # '_type',
+    syndi_crdt_data.loc[:, '_index'] = es_i
+    syndi_crdt_data = syndi_crdt_data[['_index', '_id', 'sb2file', 'status']]
 
     syndi_sbjt_data = sbjt_data[sbjt_data.cust_id.isin(cust_id_list)]
     syndi_sbjt_data.loc[:, 'sb2file'], syndi_sbjt_data.loc[:, 'status'] = sb2file, 'Syndicated'
-    syndi_sbjt_data.loc[:, '_index'] = es_i  # , syndi_sbjt_data.loc[:, '_type'], 'submissions'
-    syndi_sbjt_data = syndi_sbjt_data[['_index', '_id', 'sb2file', 'status']]  # '_type',
+    syndi_sbjt_data.loc[:, '_index'] = es_i
+    syndi_sbjt_data = syndi_sbjt_data[['_index', '_id', 'sb2file', 'status']]
 
     crdt_data = crdt_data[crdt_data.account_no.isin(ac_no_list)]
     sbjt_data = sbjt_data[sbjt_data.cust_id.isin(cust_id_list)]
@@ -421,7 +421,6 @@ def re4index(ac_no_list: list, crdt_data: pd.DataFrame, cust_id_list: list, data
     crdt_data.loc[:, 'sb2file'], crdt_data.loc[:, 'status'] = sb2file, 'Syndicated'
     sbjt_data.loc[:, 'sb2file'], sbjt_data.loc[:, 'status'] = sb2file, 'Syndicated'
     crdt_data.loc[:, 'submission'] = 'corporate' if 'com' in dataCat else 'individual'
-    # crdt_data.loc[:, '_type'], sbjt_data.loc[:, '_type'] = 'current', 'current'
 
     crdt_data.loc[:, '_id'] = crdt_data['_id'].apply(lambda x: '-'.join(x.split('-')[:-1]))
     sbjt_data.loc[:, '_id'] = sbjt_data['_id'].apply(lambda x: '-'.join(x.split('-')[:-1]))
@@ -440,10 +439,24 @@ def fix_branch(mdjlog: Logger, df: pd.DataFrame):
 
 def upd8segmnts(dp_name, iocnow, mdjlog, syndi_crdt_data, syndi_sbjt_data):
     try:
+        # flds2u = set(f for f in amnt_fields() if f in syndi_crdt_data)
+        # for fld in flds2u:
+        #     try:
+        #         mdjlog.info(f"syndi_crdt_data[{fld}].dtype\t|\tsyndi_crdt_data[{fld}].astype(int).dtype")
+        #         syndi_crdt_data[fld] = syndi_crdt_data[fld].astype(int)
+        #         syndi_crdt_data[fld].fillna(0, inplace=True)
+        #     except Exception as e:
+        #         mdjlog.info(f"Error {e} in field {fld}")
         upd8DFstatus(syndi_crdt_data, dp_name, es_i, 'submissions')
     except Exception as e:
         mdjlog.error(e)
     try:
+        # flds2u = list(set(f for f in amnt_fields() if f in syndi_sbjt_data))
+        # # for fld in flds2u:
+        # try:
+        #     syndi_sbjt_data.drop(flds2u, axis=1, inplace=True)
+        # except Exception as e:
+        #     mdjlog.info(f"Error {e} in fields {flds2u}")
         upd8DFstatus(syndi_sbjt_data, dp_name, es_i, 'submissions')
     except Exception as e:
         mdjlog.error(e)
@@ -550,55 +563,41 @@ def currindx(iocnow, mdjlog):
 
 
 def upd8DFstatus(df, dp_name, es_i, es_t):
-    mdjlog = get_logger(dp_name)
+    mdjlog, slog = get_logger(dp_name), get_logger()
     bulk_upd8_data = []
     for idx in df.index:
         try:
-            rwd = df.iloc[idx]  # todo df.ix[idx]
-            # mdjlog.info(f"{rwd=}")
+            rwd = df.iloc[idx]
         except Exception as e:
-            # mdjlog.error(e)
             rwd = df.loc[idx]
-            # mdjlog.info(f"{rwd=}")
 
-            # if isinstance(rwd['_id'], pd.series.Series): pass
-            # data_line = {'status': status} if isinstance(status, str) else {**status}
-        ndx_line = {'_index': es_i, '_op_type': 'update',  # '_type': es_t,
-                    '_id': rwd['_id'] if isinstance(rwd['_id'], str) else rwd['_id'].iloc[0]
-            , 'doc': {'status': rwd['status'] if isinstance(rwd['status'], str) else rwd['status'].iloc[0],
-                      'sb2file': rwd['sb2file'] if isinstance(rwd['sb2file'], str) else rwd['sb2file'].iloc[0]
-                      }}
+        ndx_line = {'_index': es_i, '_op_type': 'update',
+                    '_id': rwd['_id'] if isinstance(rwd['_id'], str) else rwd['_id'].iloc[0],
+                    'doc': {'status': rwd['status'] if isinstance(rwd['status'], str) else rwd['status'].iloc[0],
+                            'sb2file': rwd['sb2file'] if isinstance(rwd['sb2file'], str) else rwd['sb2file'].iloc[0], }}
         bulk_upd8_data.append(ndx_line)
         if len(bulk_upd8_data) == 7895:
-            try:
-                bulk_upd8_data = gener8(bulk_upd8_data)
-                helpers.bulk(es, bulk_upd8_data)
-                es.indices.refresh()
-                bulk_upd8_data = []
-            except Exception as e:
-                # pass
-                # mdjlog.error(e)
-                count_down(None, 1)
-                helpers.bulk(es, bulk_upd8_data)
-                es.indices.refresh()
-                bulk_upd8_data = []
-
-            # bulk_upd8_data = []
-            # pass
+            upd8a_batch(bulk_upd8_data, mdjlog)
 
     bulk_upd8_data = list(bulk_upd8_data) if not isinstance(bulk_upd8_data, list) else bulk_upd8_data
     if len(bulk_upd8_data) > 0:
         count_down(None, 1)
-        try:
-            bulk_upd8_data = gener8(bulk_upd8_data)
-            helpers.bulk(es, bulk_upd8_data)
-            es.indices.refresh()
-        except Exception as e:
-            mdjlog.error(e)
-            count_down(None, 1)
-            helpers.bulk(es, bulk_upd8_data)
-            es.indices.refresh()
+        upd8a_batch(bulk_upd8_data, mdjlog)
     mdjlog.info('done. ..')
+
+
+def upd8a_batch(bulk_upd8_data, mdjlog):
+    try:
+        bulk_upd8_data = gener8(bulk_upd8_data)
+        helpers.bulk(es, bulk_upd8_data)
+        es.indices.refresh()
+        bulk_upd8_data = []
+    except Exception as e:
+        mdjlog.error(e)
+        count_down(None, 1)
+        helpers.bulk(es, bulk_upd8_data)
+        es.indices.refresh()
+        bulk_upd8_data = []
 
 
 def gener8(l):
@@ -719,16 +718,6 @@ def syndic8data(crdt_data, sbjt_data, meta_data, ctgry_dtls, datCat, dp_meta, b2
         mdjlog.error("{}".format(e))
 
 
-def multi_pro(func, args):
-    logger = get_logger()
-    try:
-        p = mp.Process(target=func, args=args, )
-        p.start()
-    except Exception as e:
-        logger.warn(e)
-    return True
-
-
 def multi_list_pro(args):
     logger = get_logger()
     chunks = len(args)
@@ -765,21 +754,9 @@ def syndi_chunk_pro(crdt_data, ctgry_dtls, d8reported, datCat, data_size, dp_met
             mdjlog.error(e)
     # pool = Pool(processes=cores2u)
     # pool.map(syndidata, runnin_chunks_list)
-    # # args2mp = (runnin_chunks_list, cores2u, )
+
     p = mp.Process(target=multi_list_pro, args=[runnin_chunks_list], )
     p.start()
-    # # multi_pro(syndidata, runnin_chunks_list, cores2u)
-    # chunks = len(runnin_chunks_list)
-    # start, step = 0, cores2u
-    # for i in range(chunks // cores2u):
-    #     rez = [multi_pro(syndidata, chunk) for chunk in runnin_chunks_list[start:step]]
-    #     i+=1; start, step = start+cores2u, step+cores2u
-    # #
-    # # start = datetime.now()
-    # # with concurrent.futures.ProcessPoolExecutor(max_workers=cores2u) as executor:
-    # #     for i, j in zip(runnin_chunks_list, executor.map(syndidata, runnin_chunks_list)):
-    # #         timenow = datetime.now()
-    # #         print(f"{i=} @ {timenow.strftime('%H:%M:%S')} total duration is {(timenow - start).total_seconds()}")
 
     return
 
@@ -789,6 +766,7 @@ def syndi_params(ctgry_dtls, d8reported, dpid, mdjlog, sgmnt, submxn_pt):
     process_time = datetime.now().strftime('%H%M%S')
     data_list_fn = '-'.join([dpid, ctgry_dtls[sgmnt][0].upper(), d8reported, process_time]) + '.dlt'
     data_list_fn = data_list_fn.upper()
+    mdjlog.info(f"{ctgry_dtls[sgmnt][1] = }")
     data_list_hdr = '|'.join(['HDHD', dpid, submxn_pt, d8reported, process_time, process_date, ctgry_dtls[sgmnt][1]])
     mdjlog.info(f"about to . .. syndicate {data_list_fn}")
     return data_list_fn, data_list_hdr

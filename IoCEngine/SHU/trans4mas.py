@@ -270,6 +270,7 @@ def df_round_amts(df, mdjlog):
         for fld in flds2u:
             try:
                 df[fld] = df[fld].apply(round_amt)
+                df[fld].fillna(0, inplace=True)
             except Exception as e:
                 mdjlog.error(f'Error processing field {fld=}\t|\t{e=}')
     except Exception as e:

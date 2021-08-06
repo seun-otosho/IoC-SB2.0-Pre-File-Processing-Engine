@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
-import os
-import os.path
+import multiprocessing as mp
 import random
 import string
 import sys
@@ -9,6 +8,8 @@ import sys
 from datetime import datetime
 from functools import wraps
 from logging import Logger
+from os import sep, makedirs, rename, listdir, stat
+from os.path import split, exists, join, isfile, dirname
 from random import randint
 from time import perf_counter, sleep
 
@@ -42,37 +43,33 @@ def ryna():
 def mk_dir(my_dir_path, plof=None):
     try:
         my_dir_path = my_dir_path[:-1] if my_dir_path.endswith('/') else my_dir_path
-        head, tail = os.path.split(my_dir_path)
+        head, tail = split(my_dir_path)
         mdjlog = get_logger(tail.lower())
         try:
-            if not os.path.exists(my_dir_path):
+            if not exists(my_dir_path):
                 try:
-                    os.makedirs(my_dir_path)
+                    makedirs(my_dir_path)
                     # mdjlog.info(my_dir_path)
                 except Exception as e:  # Guard against race condition
                     # mdjlog.error(e)
                     pass
             else:
-                dir_cdtime = datetime.fromtimestamp(os.stat(my_dir_path).st_ctime).date()
-                dir_mdtime = datetime.fromtimestamp(os.stat(my_dir_path).st_mtime).date()
+                dir_cdtime = datetime.fromtimestamp(stat(my_dir_path).st_ctime).date()
+                dir_mdtime = datetime.fromtimestamp(stat(my_dir_path).st_mtime).date()
                 dir_dtime = dir_mdtime if dir_mdtime < dir_cdtime else dir_cdtime
                 if dir_dtime < datetime.today().date():
-                    # rename dir .strftime("%Y%b%d%a")
                     try:
-                        # temp_dir = my_dir_path + dir_dtime.strftime("%Y%b%d%a")
-                        # shutil.move(my_dir_path, temp_dir)
-                        # shutil.move(temp_dir, my_dir_path + os.sep + dir_dtime.strftime("%Y%b%d%a"))
-                        back_up_dir = my_dir_path + os.sep + dir_dtime.strftime("%Y%b%d%a")
-                        os.makedirs(back_up_dir)
-                        [os.rename(os.path.join(my_dir_path, fname), os.path.join(back_up_dir, fname)) for fname in
-                         os.listdir(my_dir_path) if os.path.isfile(os.path.join(my_dir_path, fname))]
+                        back_up_dir = my_dir_path + sep + dir_dtime.strftime("%Y%b%d%a")
+                        makedirs(back_up_dir)
+                        [rename(join(my_dir_path, fname), join(back_up_dir, fname)) for fname in
+                         listdir(my_dir_path) if isfile(join(my_dir_path, fname))]
 
                         sleep(16)
-                        os.makedirs(os.path.dirname(my_dir_path))
+                        makedirs(dirname(my_dir_path))
                         mdjlog.info(my_dir_path)
                     except Exception as e:
-                        # mdjlog.error(e)
-                        pass
+                        mdjlog.error(e)
+                        # pass
 
         except Exception as e:
             mdjlog.error(e)
@@ -92,7 +89,7 @@ def getID():
 def mk_dp_x_dir(dp_name):
     mk_dir(xtrcxn_area)
     xtrcxn_zone = xtrcxn_area
-    xtrcxn_zone += os.path.sep + dp_name + os.path.sep if os.sep not in dp_name else dp_name
+    xtrcxn_zone += sep + dp_name + sep if sep not in dp_name else dp_name
     mk_dir(xtrcxn_zone)
     return xtrcxn_zone
 
@@ -300,3 +297,13 @@ def profile(fn):
 
 def init():
     global curr_dp
+
+
+def multi_pro(func, args):
+    logger = get_logger()
+    try:
+        p = mp.Process(target=func, args=args, )
+        p.start()
+    except Exception as e:
+        logger.warn(e)
+    return True

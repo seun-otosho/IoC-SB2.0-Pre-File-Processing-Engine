@@ -29,7 +29,7 @@ ps0, ps1, psa, xtr_cols = prnc_cols()
 grntr_type_corp_abbrvxns = {"crp": "corporate", "corporate": "corporate", "002": "corporate", }
 
 
-def corp_grntr_type_check(grntr_type: str) -> str:
+def corp_grntr_type_check(grntr_type: str) -> bool:
     return grntr_type_corp_abbrvxns.get(grntr_type.lower()) == 'corporate'
 
 
@@ -381,7 +381,7 @@ def stream_from(d: dict, sub: str = None, typ: str = None):
     d["cycle_ver"] = int(d["cycle_ver"])
     d["cy_dp"], d["sub_type"] = f'{d["cycle_ver"]}-{d["dpid"]}', f'{d["submission"]}-{d["type"]}'
     d = {i: d[i] for i in d if d[i] not in ('', 'none', None,) and i != 'ndx'}
-    d["_index"], d['sub_cy'] = es_i, datetime.now()  # d["_type"] ='submissions'
+    d["_index"], d['sub_cy'] = es_i, datetime.now()
     if "_type" in d:
         del d["_type"]
     yield d
@@ -457,7 +457,7 @@ def data2col(args, df):
             mdjlogger.error(e)
             data_batch_info[data_store.split('_')[0]] = df.shape[0]
         df_dtls.update(status=pro_stat)  # batch_no=batchID,
-
+        mdjlogger.info(f"{data_batch_info = }")
         # try:
         if not data_batch_data:
             data_batch_data = DataBatchProcess(**data_batch_info)
@@ -476,14 +476,7 @@ def data2col(args, df):
 
 
 def indexDF(data_store, data_tpl, df, dp_name, mdjlogger):
-    flds2u = set(f for f in amnt_fields() if f in df)
-    for fld in flds2u:
-        try:
-            mdjlogger.info(f"df[{fld}].dtype\t|\tdf[{fld}].astype(float).dtype")
-        except Exception as e:
-            mdjlogger.info(f"Error {e} in field {fld}")
-            df[fld] = df[fld].apply(float_numbers)
-            mdjlogger.info(f"df[{fld}].dtype\t|\tdf[{fld}].astype(float).dtype")
+    fix_amt_fields(df, mdjlogger)
     #
     # for col in flds2u:
     #     try:
@@ -498,19 +491,7 @@ def indexDF(data_store, data_tpl, df, dp_name, mdjlogger):
     # df_flds2date(df, data_tpl[-1])
     # df = fields2date(data_tpl[0], df)
 
-    flds2u = set(f for f in date_fields() if f in df)
-    for fld in flds2u:
-        try:
-            df[fld] = pd.to_datetime(df[fld]).dt.date
-            mdjlogger.info(f"df['{fld}'] = pd.to_datetime(df['{fld}']).dt.date")
-        except Exception as e:
-            mdjlogger.info(f"Re~Routing::Error {e} in field {fld}")
-            try:
-                df[fld] = df[fld].apply(x2d8)
-                # df[fld] = df[fld].apply(lambda x: date.fromtimestamp(x) if x else None)
-                # mdjlogger.info(f"df[{fld}] = df['{fld}'].apply(lambda x: date.fromtimestamp(x) if x else None)")
-            except Exception as e:
-                mdjlogger.info(f"Error {e} in field {fld}")
+    fix_date_fields(df, mdjlogger)
 
     df['status'], df.loc['dp_name'], df.loc['data_file'] = 'Loaded', dp_name, data_tpl[0]['file_name']
     # df.loc[:, 'status'], df.loc[:, 'dp_name'], df.loc[:, 'data_file'] = 'Loaded', dp_name, data_tpl[0]['file_name']
@@ -577,6 +558,34 @@ def indexDF(data_store, data_tpl, df, dp_name, mdjlogger):
     #     mdjlogger.error(f"{e=}")
     #
     return data_type  # , df
+
+
+def fix_date_fields(df, mdjlogger):
+    flds2u = set(f for f in date_fields() if f in df)
+    for fld in flds2u:
+        try:
+            df[fld] = pd.to_datetime(df[fld]).dt.date
+            mdjlogger.info(f"df['{fld}'] = pd.to_datetime(df['{fld}']).dt.date")
+        except Exception as e:
+            mdjlogger.info(f"Re~Routing::Error {e} in field {fld}")
+            try:
+                df[fld] = df[fld].apply(x2d8)
+                # df[fld] = df[fld].apply(lambda x: date.fromtimestamp(x) if x else None)
+                # mdjlogger.info(f"df[{fld}] = df['{fld}'].apply(lambda x: date.fromtimestamp(x) if x else None)")
+            except Exception as e:
+                mdjlogger.info(f"Error {e} in field {fld}")
+
+
+def fix_amt_fields(df, mdjlogger):
+    flds2u = set(f for f in amnt_fields() if f in df)
+    for fld in flds2u:
+        try:
+            mdjlogger.info(f"df[{fld}].dtype\t|\tdf[{fld}].astype(float).dtype")
+        except Exception as e:
+            mdjlogger.info(f"Error {e} in field {fld}")
+            df[fld] = df[fld].apply(float_numbers)
+            df[fld].fillna(0, inplace=True)
+            mdjlogger.info(f"df[{fld}].dtype\t|\tdf[{fld}].astype(float).dtype")
 
 
 def bulkI(INDEX_NAME, bulk_data):

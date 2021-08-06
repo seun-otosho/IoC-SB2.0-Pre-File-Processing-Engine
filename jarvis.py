@@ -6,8 +6,11 @@ Created 2016
 @author: tolorun
 """
 
-import os
+
 from itertools import chain
+from os import sep, listdir
+
+from pandas import ExcelFile
 
 from IoCEngine import drop_zone
 # from IoCEngine.SHU.categorize import minify
@@ -314,34 +317,26 @@ def re_init_vars():
 def handle_individual_data(dp_name, load3Db, mdjlog, ndvdl, ndvdl_df, ndvdlfac, ndvdlfac_df, ndx_column, b2u,
                            chunk_mode=None):
     try:
-        # batches2use, mdjlog, syndibatch = [], get_logger(loaded_batches[0]['dp_name']), getID()
         ndvdlfac_df_no_sbjt = ndvdlfac_df[~ndvdlfac_df[ndx_column].isin(ndvdl_df[ndx_column])]
         ndvdl_df_no_crdt = ndvdl_df[~ndvdl_df[ndx_column].isin(ndvdlfac_df[ndx_column])]
+
+        if not ndvdlfac_df_no_sbjt.empty or not ndvdl_df_no_crdt.empty:
+            unprocessed = mk_dp_x_dir(dp_name.upper() + sep + 'unprocessed')
+            unprocessed_fyl = ExcelFile(f"{unprocessed+dp_name.upper()} Exceptions.xlsx")
         if not ndvdlfac_df_no_sbjt.empty:
-            error_cat, error_desc = 'Dependent Records Error', (
-                'Individual Credit Record reported without CORRESPONDING Subject Record')
-            # todo we can now decide to drop records with exceptions
-            # todo and log then as log_df_xcpxns(load3Dbatch, ndvdlfac_df_no_sbjt, None, (error_cat, error_desc,), False)
+            mdjlog.info(f'There are {ndvdlfac_df_no_sbjt.shape[0]} '
+                        'Individual Credit Record reported without CORRESPONDING Subject Record')
+            ndvdlfac_df_no_sbjt.to_excel(unprocessed + sep + unprocessed_fyl, index=False)
+
         if not ndvdl_df_no_crdt.empty:
-            mdjlog.info(
-                f'{ndvdl_df_no_crdt.shape[0]} Individual Subject Record reported without CORRESPONDING Credit Record')
-            # todo we can now decide to drop records with exceptions
-            # todo and log then as log_df_xcpxns(load3Dbatch, ndvdl_df_no_crdt, None, (error_cat, error_desc,), True)
+            mdjlog.info(f'There are {ndvdl_df_no_crdt.shape[0]} '
+                        'Individual Subject Record reported without CORRESPONDING Credit Record')
 
         if ndvdl and ndvdlfac:
-            # todo so we validate right here
-            # todo R3Visit xcpxn_rex(ndvdlfac_df, ndvdl_df, 'individual', load3Dbatch)
-            # fac_vals(load3Dbatch, ndvdlfac2df, )
-            # ndvdlfac2df = ppns(fac_vals, ndvdlfac_df, load3Dbatch, True)
             ndvdl2df = ndvdl_vals(load3Db, ndvdl_df, )
-            # ndvdl2df = ppns(ndvdl_vals, ndvdl_df, load3Dbatch, True)
             ndvdlfac2df = fac_vals(load3Db, ndvdlfac_df, )
-            # ndvdlfac2df = ppns(fac_vals, ndvdlfac_df, load3Dbatch, True)
-            # xcpxn_rex(ndvdlfac2df, ndvdl2df, 'individual', load3Dbatch)
-            # todo del fac_df, ndvdl_df, ndvdlfac_df
-            mdjlog.info(
-                f"""individual facility counts is {ndvdlfac2df.shape[0]} individual subject count is {ndvdl2df.shape[0]}
-                """)
+            mdjlog.info(f"individual facility counts is {ndvdlfac2df.shape[0]} "
+                        f"individual subject count is {ndvdl2df.shape[0]}")
             datCat = 'con'
             ctgry_dtls, dp_meta = g_meta(datCat, dp_name, load3Db)
             syndifiles = syndic8data(ndvdlfac2df, ndvdl2df, load3Db, ctgry_dtls, datCat, dp_meta, b2u, chunk_mode,
@@ -357,14 +352,18 @@ def handle_corporate_data(dp_name, load3Db, mdjlog, corp, corp_df, corpfac, corp
     try:
         corpfac_df_no_sbjt = corpfac_df[~corpfac_df[ndx_column].isin(corp_df[ndx_column])]
         corp_df_no_crdt = corp_df[~corp_df[ndx_column].isin(corpfac_df[ndx_column])]
+
+        if not corpfac_df_no_sbjt.empty or not corp_df_no_crdt.empty:
+            unprocessed = mk_dp_x_dir(dp_name.upper() + sep + 'unprocessed')
+            unprocessed_fyl = ExcelFile(f"{unprocessed+dp_name.upper()} Exceptions.xlsx")
         if not corpfac_df_no_sbjt.empty:
-            error_cat, error_desc = 'Dependent Records Error', (
-                'Corporate Credit Record reported without CORRESPONDING Subject Record')
+            mdjlog.info(f'There are {corpfac_df_no_sbjt.shape[0]} '
+                        'Corporate Credit Record reported without CORRESPONDING Subject Record')
             # todo we can now decide to drop records with exceptions
             # todo and log then as log_df_xcpxns(load3Dbatch, corpfac_df_no_sbjt, None, (error_cat, error_desc,), False)
         if not corp_df_no_crdt.empty:
-            mdjlog.info(
-                f'{corp_df_no_crdt.shape[0]} Corporate Subject Record reported without CORRESPONDING Credit Record')
+            mdjlog.info(f'There are {corp_df_no_crdt.shape[0]} '
+                        'Corporate Subject Record reported without CORRESPONDING Credit Record')
             # todo we can now decide to drop records with exceptions
             # todo and log then as log_df_xcpxns(load3Dbatch, corp_df_no_crdt, None, (error_cat, error_desc,), True)
 
@@ -399,7 +398,7 @@ def rez_combined_data(corp, corpfac, dpid, loaded_batch, ndvdl, ndvdlfac, mdjlog
             fac_type = 'corpfac' if 'fac' not in load3DSegments else 'fac'
             corpfac, corpfac_df = fac_data(dpid, loaded_batch, fac_type)
             try:
-                corpfac2df = corpfac_df[corpfac_df[ndx_column].isin(corp_df[ndx_column])]
+                corpfac2df = corpfac_df[corpfac_df[ndx_column].isin(corp_df[ndx_column])]  # todo remove .sample(55)
             except Exception as e:
                 mdjlog.warn(e)
     elif loaded_batch['data_type'] == 'all':
@@ -554,15 +553,15 @@ def rez_inter_customers(load3Dbatch, corp_df, ndvdl_df, ):
     mdjlog.info("resolving overlaps")
 
     if not corp_in_ndvdl_df.empty:  # and data_type == 'all'
-        unprocessed = mk_dp_x_dir(dp_name.upper() + os.sep + 'unprocessed')
-        corp_in_ndvdl_df.to_excel(unprocessed + os.sep + 'corporate_customers_in_individual.xlsx', index=False)
+        unprocessed = mk_dp_x_dir(dp_name.upper() + sep + 'unprocessed')
+        corp_in_ndvdl_df.to_excel(unprocessed + sep + 'corporate_customers_in_individual.xlsx', index=False)
         corp2df = corp_df[~corp_df[ndx_column].isin(ndvdl_df[ndx_column])]
     else:
         corp2df = corp_df
 
     if not ndvdl_in_corp_df.empty:
-        unprocessed = mk_dp_x_dir(dp_name.upper() + os.sep + 'unprocessed')
-        ndvdl_in_corp_df.to_excel(unprocessed + os.sep + 'individual_customers_in_corporate.xlsx', index=False)
+        unprocessed = mk_dp_x_dir(dp_name.upper() + sep + 'unprocessed')
+        ndvdl_in_corp_df.to_excel(unprocessed + sep + 'individual_customers_in_corporate.xlsx', index=False)
         ndvdl2df = ndvdl_df[~ndvdl_df[ndx_column].isin(corp_df[ndx_column])]
     else:
         ndvdl2df = ndvdl_df
@@ -580,14 +579,14 @@ def rez_inter_facilities(load3Dbatch, corpfac_df, ndvdlfac_df, ):
         by=ndx_column)
     mdjlog.info("resolving overlaps")
     if not corpfac_in_ndvdlfac_df.empty and data_type == 'all':
-        unprocessed = mk_dp_x_dir(dp_name.upper() + os.sep + 'unprocessed')
-        corpfac_in_ndvdlfac_df.to_excel(unprocessed + os.sep + 'corporate_facilities_in_individual.xlsx', index=False)
+        unprocessed = mk_dp_x_dir(dp_name.upper() + sep + 'unprocessed')
+        corpfac_in_ndvdlfac_df.to_excel(unprocessed + sep + 'corporate_facilities_in_individual.xlsx', index=False)
         corpfac2df = corpfac_df[~corpfac_df[ndx_column].isin(ndvdlfac_df[ndx_column])]
     else:
         corpfac2df = corpfac_df
     if not ndvdlfac_in_corpfac_df.empty and data_type == 'all':
-        unprocessed = mk_dp_x_dir(dp_name.upper() + os.sep + 'unprocessed')
-        ndvdlfac_in_corpfac_df.to_excel(unprocessed + os.sep + 'individual_facilities_in_corporate.xlsx', index=False)
+        unprocessed = mk_dp_x_dir(dp_name.upper() + sep + 'unprocessed')
+        ndvdlfac_in_corpfac_df.to_excel(unprocessed + sep + 'individual_facilities_in_corporate.xlsx', index=False)
         ndvdlfac2df = ndvdlfac_df[~ndvdlfac_df[ndx_column].isin(corpfac_df[ndx_column])]
     else:
         ndvdlfac2df = ndvdlfac_df
@@ -595,7 +594,7 @@ def rez_inter_facilities(load3Dbatch, corpfac_df, ndvdlfac_df, ):
 
 
 def get_crdt_file(file_dict):
-    files_in_dir = [file for file in os.listdir(drop_zone) if len(file.split('_')) >= 4]
+    files_in_dir = [file for file in listdir(drop_zone) if len(file.split('_')) >= 4]
     # mdjlog.info("{}".format(files_in_dir))
     s_f = None
     files_in_dir.remove(file_dict['file_name'])
@@ -616,7 +615,7 @@ def get_crdt_file(file_dict):
 
 def get_subj_file(file_dict):
     mdjlog = get_logger(file_dict['file_name'].split('_')[0])
-    files_in_dir = [file for file in os.listdir(drop_zone) if len(file.split('_')) >= 4]
+    files_in_dir = [file for file in listdir(drop_zone) if len(file.split('_')) >= 4]
     # mdjlog.info("{}".format(files_in_dir))
     s_f = None
     files_in_dir.remove(file_dict['file_name'])

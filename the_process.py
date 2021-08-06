@@ -15,7 +15,7 @@ from subprocess import call
 
 from IoCEngine import drop_zone
 from IoCEngine.celeryio import app
-from IoCEngine.commons import count_down, std_out, dp_meta_data, fig_str, profile
+from IoCEngine.commons import count_down, std_out, dp_meta_data, fig_str, profile, multi_pro
 from IoCEngine.logger import get_logger
 from IoCEngine.utils.file import dict_file, xtrct_file_details, DataFiles
 from jarvis import route_file, route_filed_data
@@ -80,7 +80,7 @@ def initialize_files(the_files, mdjlog=None):
                 init1file(file, i, lfile)
     except Exception as e:
         mdjlog.error(e)
-        mdjlog.critical("Data file name '{}', is wrong!".format(file))
+        mdjlog.critical(f"Invalid Data file name '{file}'!")
 
 
 def init1file(file, i=None, c=None):
@@ -94,7 +94,6 @@ def init1file(file, i=None, c=None):
         mdjlog.info(fig_str())
         file_id = dict_file(file, file_dtls, start, mdjlog)
         fp_router(file_id)
-        # fp_router.delay(file_id)
 
 
 def get_dpid(fl_dtls, mdjlog=None, plf=None):
@@ -161,10 +160,16 @@ def the_main_pro():
         mdjlog.info(fig_str())
         # data_prvdrs_re = dp_meta_data()
         mdjlog.info(". ..")
-        for watched in watch(drop_zone):
-            mdjlog = get_logger(watched.lower().split('_')[0])
-            initialize_files(watched, mdjlog=mdjlog)
-            count_down()
+        for seen in watch(drop_zone):
+            multi_pro(pro_watch, seen)
+            pro_watch(seen)
+
+
+def pro_watch(watched):
+    global mdjlog
+    mdjlog = get_logger(watched.lower().split('_')[0])
+    initialize_files(watched, mdjlog=mdjlog)
+    count_down()
 
 
 if __name__ == "__main__":

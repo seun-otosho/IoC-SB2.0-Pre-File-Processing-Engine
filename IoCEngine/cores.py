@@ -31,7 +31,7 @@ def ppns(f, df, listargs, re=False):
         if not df.empty:
             # chunk_size = int(df.shape[0] / processes)
             df_shape = df.shape
-            processes = mpcores if df_shape[0] > 5731 else 1
+            processes = cores2u if df_shape[0] > 5731 else 1
             if df_shape[0] <= 5731:
                 mdjlogger.info('not spurning any new process for {} | {} . ..'.format(loadedbatch, df_shape))
                 return f(listargs, df)
