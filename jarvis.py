@@ -8,6 +8,7 @@ Created 2016
 
 
 from itertools import chain
+from logging import Logger
 from os import sep, listdir
 
 import pandas as pd
@@ -319,8 +320,8 @@ def re_init_vars():
 
 
 @profile
-def handle_individual_data(dp_name, load3Db, mdjlog, ndvdl, ndvdl_df, ndvdlfac, ndvdlfac_df, ndx_column, b2u,
-                           chunk_mode=None):
+def handle_individual_data(dp_name: str, load3Db, mdjlog: Logger, ndvdl: bool, ndvdl_df: pd.DataFrame, ndvdlfac: bool,
+                           ndvdlfac_df: pd.DataFrame, ndx_column: str, b2u, chunk_mode=None):
     mdjlog.info(f"sbjt's {ndx_column}s {ndvdl_df[ndx_column].nunique():11,}\t"
                 f"|\tcrdt's {ndx_column}s: {ndvdlfac_df[ndx_column].nunique():11,}")
     try:
@@ -344,7 +345,8 @@ def handle_individual_data(dp_name, load3Db, mdjlog, ndvdl, ndvdl_df, ndvdlfac, 
         mdjlog.error(e)
 
 
-def handle_missing_segment_records(dp_name, mdjlog, sbjt_df_no_crdt, fac_df_no_sbjt, ctype):
+def handle_missing_segment_records(dp_name: str, mdjlog: Logger, sbjt_df_no_crdt: pd.DataFrame,
+                                   fac_df_no_sbjt: pd.DataFrame, ctype: str):
     fac_chck = not fac_df_no_sbjt.empty and fac_df_no_sbjt.shape[0] > 0
     sbj_chck = not sbjt_df_no_crdt.empty and sbjt_df_no_crdt.shape[0] > 0
 
@@ -380,8 +382,8 @@ def handle_missing_segment_records(dp_name, mdjlog, sbjt_df_no_crdt, fac_df_no_s
 
 
 @profile
-def handle_corporate_data(dp_name, load3Db, mdjlog, corp, corp_df, corpfac, corpfac_df, ndx_column, b2u,
-                          chunk_mode=None):
+def handle_corporate_data(dp_name: str, load3Db, mdjlog: Logger, corp: bool, corp_df: pd.DataFrame,
+                          corpfac: bool, corpfac_df: pd.DataFrame, ndx_column: str, b2u, chunk_mode=None):
     mdjlog.info(f"sbjt's {ndx_column}s {corp_df[ndx_column].nunique():11,}\t"
                 f"|\tcrdt's {ndx_column}s {corpfac_df[ndx_column].nunique():11,}")
     try:
@@ -410,7 +412,8 @@ def handle_corporate_data(dp_name, load3Db, mdjlog, corp, corp_df, corpfac, corp
 
 
 @profile
-def rez_combined_data(corp, corpfac, dpid, loaded_batch, ndvdl, ndvdlfac, mdjlog=None):
+def rez_combined_data(corp: bool, corpfac: bool, dpid: str, loaded_batch, ndvdl: bool, ndvdlfac: bool,
+                      mdjlog:Logger=None) -> tuple:
     mdjlog = mdjlog if mdjlog else get_logger(loaded_batch['dp_name'])
     load3DSegments = loaded_batch['segments']
     mdjlog.info(load3DSegments)
@@ -447,9 +450,9 @@ def rez_combined_data(corp, corpfac, dpid, loaded_batch, ndvdl, ndvdlfac, mdjlog
     if loaded_batch['data_type'] in all_corp_modes:
         # del corpfac_df
         # return corp, corp_df, corpfac, corpfac2df, False, None, False, None
-        mdjlog.info(f"CORP sbjt's {ndx_column}s {ndvdl_df[ndx_column].nunique():11,}\t"
-                    f"|\tcrdt's {ndx_column}s: {ndvdlfac_df[ndx_column].nunique():11,}"
-                    f"|\tcrdt's account numbers: {ndvdlfac_df['account_no'].nunique():11,}")
+        mdjlog.info(f"CORP sbjt's {ndx_column}s {corp_df[ndx_column].nunique():11,}\t"
+                    f"|\tcrdt's {ndx_column}s: {corpfac_df[ndx_column].nunique():11,}"
+                    f"|\tcrdt's account numbers: {corpfac_df['account_no'].nunique():11,}")
         return corp, corp_df, corpfac, corpfac_df, False, None, False, None
     if loaded_batch['data_type'] in all_ndvdl_modes:
         # del ndvdlfac_df
@@ -467,7 +470,8 @@ def rez_combo_data(combo, combo_df, dpid, loaded_batch):
 
 
 @profile
-def rez_single_data(corp, corpfac, ndvdl, ndvdlfac, dpid, loaded_batch, load3DSegments, mdjlog=None):
+def rez_single_data(corp: bool, corpfac: bool, ndvdl: bool, ndvdlfac: bool, dpid: str, loaded_batch, load3DSegments,
+                    mdjlog: Logger = None) -> tuple:
     mdjlog, load3DSegments = mdjlog if mdjlog else get_logger(loaded_batch['dp_name']), list(set(load3DSegments))
     mdjlog.info(load3DSegments)
     ndx_column = 'cust_id' if loaded_batch['in_mod'] in cdt_udf_modes else 'account_no'
@@ -525,7 +529,8 @@ def rez_single_data(corp, corpfac, ndvdl, ndvdlfac, dpid, loaded_batch, load3DSe
 
 
 @profile
-def rez_single_data_cf(corp, corpfac, ndvdl, ndvdlfac, dpid, loaded_batch, load3DSegments, mdjlog=None):
+def rez_single_data_cf(corp: bool, corpfac: bool, ndvdl: bool, ndvdlfac: bool, dpid: str, loaded_batch, load3DSegments,
+                       mdjlog:Logger=None) -> tuple:
     mdjlog, load3DSegments = mdjlog if mdjlog else get_logger(loaded_batch['dp_name']), list(set(load3DSegments))
     ndx_column = 'cust_id' if loaded_batch['in_mod'] in cdt_udf_modes else 'account_no'
     corpfac2df, ndvdlfac2df = None, None
@@ -579,7 +584,7 @@ def rez_single_data_cf(corp, corpfac, ndvdl, ndvdlfac, dpid, loaded_batch, load3
     return corp, corp_df, corpfac, corpfac2df, ndvdl, ndvdl_df, ndvdlfac, ndvdlfac2df
 
 
-def rez_inter_customers(load3Dbatch, corp_df, ndvdl_df, ):
+def rez_inter_customers(load3Dbatch, corp_df: pd.DataFrame, ndvdl_df: pd.DataFrame) -> (pd.DataFrame, pd.DataFrame, ):
     dp_name, data_type = load3Dbatch['dp_name'], load3Dbatch['data_type']
     ndx_column = 'cust_id' if load3Dbatch['in_mod'] in cdt_udf_modes else 'account_no'
     corp_in_ndvdl_df = corp_df[corp_df[ndx_column].isin(ndvdl_df[ndx_column])].sort_values(by=ndx_column)

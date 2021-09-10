@@ -1,3 +1,5 @@
+from logging import Logger
+
 import pandas as pd
 from elasticsearch import helpers
 from pandasticsearch import Select
@@ -16,7 +18,7 @@ mdjlog = get_logger('jarvis')
 # split_var = 45788
 
 
-def combo_data(dpid, loaded_batch, xtrcxn_zone):
+def combo_data(dpid: str, loaded_batch, xtrcxn_zone):
     mdjlog = get_logger(loaded_batch['dp_name'])
     try:
         data_doc_type = 'combined_submissions'
@@ -31,7 +33,7 @@ def combo_data(dpid, loaded_batch, xtrcxn_zone):
                                               }
                                     }
                               , size=data_size, from_=0)
-        
+
         combo_df = Select.from_dict(combo_rez).to_pandas()
         combo_df.fillna('', inplace=True)
         if not combo_df.empty:
@@ -48,7 +50,7 @@ def combo_data(dpid, loaded_batch, xtrcxn_zone):
 
 
 @profile
-def conf_df(loaded_batch, mdjlog, df, rez):
+def conf_df(loaded_batch, mdjlog: Logger, df: pd.DataFrame, rez):
     if df is not None and not df.empty:
         # del df['batch_no'], df['cycle_ver'], df['dpid'], df['status']
         del df['_score'], df['_index']
@@ -63,13 +65,13 @@ def conf_df(loaded_batch, mdjlog, df, rez):
         return None, 0
 
 
-def i2df(data_doc_type, data_size, dpid, loaded_batch, ndx_col):
+def i2df(data_doc_type: str, data_size: int, dpid: str, loaded_batch, ndx_col: str):
     query = es_query(data_doc_type, dpid, loaded_batch)
     rez = es.search(index=es_i, body={"query": query}, size=data_size, from_=0)
-    
+
     df = Select.from_dict(rez).to_pandas()
     df = df if (data_doc_type in gs
-        ) else df[df.sub_type == f"{submission_type_dict[data_doc_type]}-{data_type_dict[data_doc_type]}"]
+                ) else df[df.sub_type == f"{submission_type_dict[data_doc_type]}-{data_type_dict[data_doc_type]}"]
     df.drop_duplicates(inplace=True)
     if df is not None and not df.empty:
         df.fillna('', inplace=True)
@@ -79,7 +81,7 @@ def i2df(data_doc_type, data_size, dpid, loaded_batch, ndx_col):
     return df, rez, data_size
 
 
-def es_query(data_doc_type, dpid, loaded_batch):
+def es_query(data_doc_type: str, dpid: str, loaded_batch):
     query = {
         "bool": {"must": [
             {"match": {"cy_dp": f"{int(loaded_batch['cycle_ver'])}-{dpid}"}},
@@ -109,15 +111,15 @@ def es_query(data_doc_type, dpid, loaded_batch):
 """
 
 
-def upd8DFstatus(data_doc_type, df, index_col, status):
+def upd8DFstatus(data_doc_type: str, df: pd.DataFrame, index_col: str, status):
     bulk_upd8_data = []
     for rwd in df.to_dict("records"):
         try:
             data_line = {'status': status} if isinstance(status, str) else {**status}
             ndx_line = {'_index': es_i, '_op_type': 'update',
                         '_id': rwd["_id"], 'doc': {**data_line, **{'submission': submission_type_dict[data_doc_type],
-                                                            'type': data_type_dict[data_doc_type], }},
-            }
+                                                                   'type': data_type_dict[data_doc_type], }},
+                        }
             bulk_upd8_data.append(ndx_line)
             try:
                 if len(bulk_upd8_data) == 23457:
@@ -135,7 +137,7 @@ def upd8DFstatus(data_doc_type, df, index_col, status):
         mdjlog.error(f"Unable to update index: {e}")
 
 
-def corp_data(dpid, loaded_batch):
+def corp_data(dpid: str, loaded_batch):
     mdjlog = get_logger(loaded_batch['dp_name'])
     try:
         data_doc_type, df, corp_cc_df = 'corporate_submission', None, None
@@ -179,8 +181,9 @@ def corp_data(dpid, loaded_batch):
         #         return True, corp_df
         #     else:
         #         mdjlog.warn('no CORPORATE data . ..')
-        fac_args = (crounds, data_size, dpid, corp_cc_df, data_doc_type, loaded_batch, mdjlog, ndx_col, rounds, size2use,
-                    size_done,)
+        fac_args = (
+        crounds, data_size, dpid, corp_cc_df, data_doc_type, loaded_batch, mdjlog, ndx_col, rounds, size2use,
+        size_done,)
         if data_size > split_var:
             df = df_rounds(fac_args)
         else:
@@ -193,7 +196,7 @@ def corp_data(dpid, loaded_batch):
     return False, None
 
 
-def fac_data(dpid, loaded_batch, fac_type):
+def fac_data(dpid: str, loaded_batch, fac_type):
     mdjlog = get_logger(loaded_batch['dp_name'])
     try:
         data_doc_type, df, fac_cc_df, ndx_col = 'facility_submissions', None, None, 'account_no'
@@ -250,7 +253,7 @@ def fac_data(dpid, loaded_batch, fac_type):
     return False, None
 
 
-def ndvdl_data(dpid, loaded_batch):
+def ndvdl_data(dpid: str, loaded_batch):
     mdjlog = get_logger(loaded_batch['dp_name'])
     try:
         data_doc_type, df = 'individual_submission', None
@@ -332,7 +335,8 @@ def df_rounds(args: list):
     return cc_df
 
 
-def df_round(cc_df, dpid, loaded_batch, mdjlog, ndx_col, size2use, type):
+def df_round(
+        cc_df: pd.DataFrame, dpid: str, loaded_batch, mdjlog: Logger, ndx_col: str, size2use: int, type: str) -> tuple:
     df, rez, size = i2df(type, size2use, dpid, loaded_batch, ndx_col)
     if df.empty:
         mdjlog.warn(f'no {type.upper()} data . ..')
@@ -343,7 +347,7 @@ def df_round(cc_df, dpid, loaded_batch, mdjlog, ndx_col, size2use, type):
     return cc_df
 
 
-def grntr_data(dpid: str, loaded_batch, grntr_type: str = None):
+def grntr_data(dpid: str, loaded_batch, grntr_type: str = None) -> tuple:
     mdjlog = get_logger(loaded_batch['dp_name'])
     try:
         data_doc_type, df, grntr_cc_df, ndx_col = 'guarantors', None, None, 'account_no'
@@ -353,7 +357,7 @@ def grntr_data(dpid: str, loaded_batch, grntr_type: str = None):
 
         if data_size > split_var:
             grntr_args = (crounds, data_size, dpid, grntr_cc_df, grntr_type, loaded_batch, mdjlog, ndx_col, rounds,
-                      size2use, size_done,)
+                          size2use, size_done,)
             df = df_rounds(grntr_args)
         else:
             df = df_round(df, dpid, loaded_batch, mdjlog, ndx_col, size2use, grntr_type)
@@ -371,21 +375,21 @@ def grntr_data(dpid: str, loaded_batch, grntr_type: str = None):
     return False, None
 
 
-def prnc_data(dpid: str, loaded_batch, prnc_type: str = None):
+def prnc_data(dpid: str, loaded_batch, prnc_type: str = None) -> tuple:
     mdjlog = get_logger(loaded_batch['dp_name'])
     try:
-        data_doc_type, df, grntr_cc_df, ndx_col = 'guarantors', None, None, 'account_no'  # todo
+        data_doc_type, df, grntr_cc_df, ndx_col = 'principal', None, None, 'cust_id'  # todo
 
         data_size = int(loaded_batch[data_doc_type])
         rounds, size_done = data_size // split_var + 1, 0
         crounds, size2use = 1 if rounds is (0 or 1) else rounds - 1, round(data_size / rounds)
         prnc_args = (crounds, data_size, dpid, grntr_cc_df, prnc_type, loaded_batch, mdjlog, ndx_col, rounds,
-                      size2use, size_done,)
+                     size2use, size_done,)
         df = df_rounds(prnc_args) if (data_size > split_var
-                                       ) else df_round(df, dpid, loaded_batch, mdjlog, ndx_col, size2use, prnc_type)
+                                      ) else df_round(df, dpid, loaded_batch, mdjlog, ndx_col, size2use, prnc_type)
 
-        prnc_ndx_flds = ['cycle_ver', 'dpid', 'account_no', 'grntr_type', 'biz_name', 'biz_reg_no',
-            'last_name', 'first_name', 'national_id_no', 'drivin_license_no', 'bvn', 'i_pass_no', ]
+        prnc_ndx_flds = ['cycle_ver', 'dpid', 'cust_id', 'last_name', 'first_name', 'national_id_no',
+                         'drivin_license_no', 'bvn', 'i_pass_no',]
         re_ndx_flds(df, prnc_ndx_flds)
         df.fillna('', inplace=True)
         # df.loc[:, '_id'] = df[prnc_ndx_flds].apply(lambda x: prep_prnc_id(x), axis=1)

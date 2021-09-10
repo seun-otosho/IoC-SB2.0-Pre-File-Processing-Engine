@@ -58,7 +58,7 @@ def clean_a_line(str: str, mdjlog: Logger):
     return df_str
 
 
-def fix_fac_missing(crdt_data: pd.DataFrame, meta_data):
+def fix_fac_missing(crdt_data: pd.DataFrame, meta_data: dict):
     crdt_data.insert(0, 'prev_dpid', '')
     crdt_data.insert(0, 'dpid', meta_data['dpid'])
 
@@ -142,7 +142,7 @@ def syndidata(lz: tuple):
             else:
                 syndi_pair_args = (
                     crdt_data, fac_sgmnt, iff_fac_cols, iff_sbjt_cols, meta_data, sb2file, sbjt_data, sbjt_sgmnt,
-                    datCat, syndi_dir, chunk_info,
+                    datCat, syndi_dir, chunk_info, *nones(7),
                 )
             syndi_rez = [syndi_pairs(syndi_pair_args)]
 
@@ -194,14 +194,14 @@ def syndidata(lz: tuple):
     return
 
 
-def ps_vals(mdjlog, ps_data):
+def ps_vals(mdjlog: Logger, ps_data: pd.DataFrame):
     ps_data.loc[:, "prnc_type"] = "002"
     ps_data.loc[:, 'psxn_in_biz'] = ps_data.psxn_in_biz.apply(lambda x: rlxn_typ[x.lower()])
     ps_data.loc[:, 'pri_addr_typ'] = '001'
     df_d8s2str(ps_data, mdjlog)
 
 
-def gs_vals(gs_data, mdjlog):
+def gs_vals(gs_data: pd.DataFrame, mdjlog: Logger):
     gs_data.loc[:, 'grntr_type'] = gs_data.grntr_type.apply(lambda x: grntr_typ[x.lower()])
     gs_data.loc[:, 'incorp_date'] = gs_data[['grntr_type', 'birth_incorp_date']].apply(
         lambda x: x[1] if x[0] == '001' else '', axis=1)
@@ -222,7 +222,7 @@ def syndi_pairs(targs: tuple):
 
     crdt_data['cycle_ver'], sbjt_data['cycle_ver'] = meta_data['cycle_ver'], meta_data['cycle_ver']
     crdt_shape, ac_no_list, cust_id_list = crdt_data.shape[0], [], []
-
+    sbjt_prnc_dict = {c: None for c in sbjt_data.cust_id}
     # fix branch code
     fix_branch(mdjlog, crdt_data)
     fix_branch(mdjlog, sbjt_data)
@@ -243,14 +243,24 @@ def syndi_pairs(targs: tuple):
 
     if 'com' in dataCat:
         try:
-            ps_args = *targs[14:17], True, ['branch_code', 'cust_id', 'account_no', 'biz_name', ], 'cust_id', True
-            ps, ps_df = related_df(iff_sbjt_data, ps_args, mdjlog, meta_data)
+            ps_df, sndx = targs[14] if len(targs) > 14 else targs[11], 'cust_id'
+            c_seg = targs[15] if len(targs) > 14 else targs[12]
         except Exception as e:
             mdjlog.error(f"{e=}")
+            ps_df, sndx, c_seg = nones(3)
+
+        if c_seg == 'CMRS':
+            ps_df = pd.merge(account_no_df, ps_df, on=sndx, how='inner')
+            ps_args = ps_df, *targs[12:14], True, [
+                'branch_code', 'cust_id', 'account_no', 'biz_name', ], 'cust_id', True
+            ps, ps_df = related_df(iff_sbjt_data, ps_args, mdjlog, meta_data)
 
     try:
-        gs_args = *targs[11:14], True, ['branch_code', 'account_no'], 'account_no', True
-        gs, gs_df = related_df(crdt_data, gs_args, mdjlog, meta_data)
+        c_seg = targs[12] if len(targs) > 11 else None
+
+        if c_seg and c_seg[2:] == 'GS':
+            gs_args = *targs[11:14], True, ['branch_code', 'account_no'], 'account_no', True
+            gs, gs_df = related_df(crdt_data, gs_args, mdjlog, meta_data)
     except Exception as e:
         mdjlog.error(f"{e=}")
 
@@ -320,10 +330,11 @@ def syndi_pairs(targs: tuple):
             if 'com' in dataCat:
                 prnc_df = ps_df[ps_df.cust_id == custID2use].drop_duplicates() if ps else pd.DataFrame()
                 # std_out(f"{prnc_df.empty=} {prnc_df.shape=}")
-                if not prnc_df.empty:
+                if not prnc_df.empty and not sbjt_prnc_dict[custID2use]:
                     custPsCount, psCustCount, syndi_data_list = related_data_line(custPsCount, prnc_df, psCustCount,
                                                                                   syndi_data_list, mdjlog)
                     psCustList.append(custID2use)
+                    sbjt_prnc_dict[custID2use] = True
 
             grntr_df = gs_df[gs_df.account_no == ac_no].drop_duplicates() if gs else pd.DataFrame()
             # std_out(f"{grntr_df.empty=} {grntr_df.shape=}")
@@ -446,26 +457,12 @@ def fix_branch(mdjlog: Logger, df: pd.DataFrame):
             df['branch_code'] = '001'
 
 
-def upd8segmnts(dp_name, iocnow, mdjlog, syndi_crdt_data, syndi_sbjt_data):
+def upd8segmnts(dp_name: str, iocnow, mdjlog: Logger, syndi_crdt_data: pd.DataFrame, syndi_sbjt_data: pd.DataFrame):
     try:
-        # flds2u = set(f for f in amnt_fields() if f in syndi_crdt_data)
-        # for fld in flds2u:
-        #     try:
-        #         mdjlog.info(f"syndi_crdt_data[{fld}].dtype\t|\tsyndi_crdt_data[{fld}].astype(int).dtype")
-        #         syndi_crdt_data[fld] = syndi_crdt_data[fld].astype(int)
-        #         syndi_crdt_data[fld].fillna(0, inplace=True)
-        #     except Exception as e:
-        #         mdjlog.info(f"Error {e} in field {fld}")
         upd8DFstatus(syndi_crdt_data, dp_name, es_i, 'submissions')
     except Exception as e:
         mdjlog.error(e)
     try:
-        # flds2u = list(set(f for f in amnt_fields() if f in syndi_sbjt_data))
-        # # for fld in flds2u:
-        # try:
-        #     syndi_sbjt_data.drop(flds2u, axis=1, inplace=True)
-        # except Exception as e:
-        #     mdjlog.info(f"Error {e} in fields {flds2u}")
         upd8DFstatus(syndi_sbjt_data, dp_name, es_i, 'submissions')
     except Exception as e:
         mdjlog.error(e)
@@ -526,7 +523,7 @@ def nones(n: int = 1) -> tuple:
     return eval("None, " * n)
 
 
-def re_dupz(df, ndx, mdjlog):
+def re_dupz(df: pd.DataFrame, ndx: int, mdjlog):
     ndx_nunique = df[ndx].nunique()
     dups = df.shape[0] - ndx_nunique
     if dups > 0:
@@ -536,7 +533,7 @@ def re_dupz(df, ndx, mdjlog):
         mdjlog.info("no duplicates")
 
 
-def normalize_dict(ivar):
+def normalize_dict(ivar) -> dict:
     d = ivar.to_dict('records') if isinstance(ivar, pd.DataFrame) else ivar.to_dict()
     d = d if isinstance(d, dict) else d[0]
     d = {i: d[i] for i in d if d[i] not in ('', None,)}
@@ -544,7 +541,7 @@ def normalize_dict(ivar):
     return d
 
 
-def currindx(iocnow, mdjlog):
+def currindx(iocnow: list, mdjlog: Logger):
     try:
         iocnow_gnrt = gener8(iocnow)
         helpers.bulk(es, iocnow_gnrt)
@@ -571,7 +568,7 @@ def currindx(iocnow, mdjlog):
 #         mdjlog.error(e)
 
 
-def upd8DFstatus(df, dp_name, es_i, es_t):
+def upd8DFstatus(df: pd.DataFrame, dp_name: str, es_i: str, es_t: str):
     mdjlog, slog = get_logger(dp_name), get_logger()
     bulk_upd8_data = []
     for idx in df.index:
@@ -595,7 +592,7 @@ def upd8DFstatus(df, dp_name, es_i, es_t):
     mdjlog.info('done. ..')
 
 
-def upd8a_batch(bulk_upd8_data, mdjlog):
+def upd8a_batch(bulk_upd8_data: list, mdjlog: Logger):
     try:
         bulk_upd8_data = gener8(bulk_upd8_data)
         helpers.bulk(es, bulk_upd8_data)
@@ -609,7 +606,7 @@ def upd8a_batch(bulk_upd8_data, mdjlog):
         bulk_upd8_data = []
 
 
-def gener8(l):
+def gener8(l: list):
     for e in l: yield e
 
 
@@ -680,7 +677,8 @@ def upd8crdt_recs(largs: tuple, crdt_data: pd.DataFrame):
 
 
 @profile
-def syndic8data(crdt_data, sbjt_data, meta_data, ctgry_dtls, datCat, dp_meta, b2u, chunk_mode=None, mdjlog=None):
+def syndic8data(crdt_data: pd.DataFrame, sbjt_data: pd.DataFrame, meta_data, ctgry_dtls, datCat: str, dp_meta,
+                b2u, chunk_mode=None, mdjlog=None):
     mdjlog, sb2files, tasks = mdjlog if mdjlog else get_logger(meta_data['dp_name']), [], []
     file_dtls = DataFiles.objects(cycle_ver=meta_data['cycle_ver'], dpid=meta_data['dpid'], status='Loaded').first()
     file_dtls = file_dtls if file_dtls else DataFiles.objects(
@@ -738,8 +736,9 @@ def multi_list_pro(args):
 
 
 @profile
-def syndi_chunk_pro(crdt_data, ctgry_dtls, d8reported, datCat, data_size, dp_meta, dpid, mdjlog, meta_data,
-                    runnin_chunks_list, sbjt_data, sgmnt, submxn_pt, b2u, syndi_dir, chunk_mode):
+def syndi_chunk_pro(crdt_data: pd.DataFrame, ctgry_dtls, d8reported, datCat: str, data_size: int, dp_meta, dpid: str,
+                    mdjlog: Logger, meta_data, runnin_chunks_list, sbjt_data: pd.DataFrame, sgmnt: str, submxn_pt: str,
+                    b2u, syndi_dir, chunk_mode):
     rounds, size_done = data_size // chunk_size + 1, 0
     rcount, size2use = rounds - 1, round(data_size / rounds)
     crdt_data_chunks = np.array_split(crdt_data, rounds)
@@ -779,7 +778,7 @@ def chunk_pairs_pro(b2u, crdt_data_chunks, ctgry_dtls, d8reported, datCat, data_
             mdjlog.error(e)
 
 
-def syndi_params(ctgry_dtls, d8reported, dpid, mdjlog, sgmnt, submxn_pt):
+def syndi_params(ctgry_dtls, d8reported, dpid: str, mdjlog: Logger, sgmnt, submxn_pt):
     process_date = datetime.now().strftime('%d-%b-%Y')
     process_time = datetime.now().strftime('%H%M%S')
     data_list_fn = '-'.join([dpid, ctgry_dtls[sgmnt][0].upper(), d8reported, process_time]) + '.dlt'

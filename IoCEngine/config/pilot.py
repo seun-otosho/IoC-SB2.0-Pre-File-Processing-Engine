@@ -125,8 +125,8 @@ EsSetup(conEs,'idxName','docTypeName',dset,dMap)
 '''
 
 chunk_size = 40123  # 1234  #  12357  # 45789  #
-chunk_size = f"{chunk_size:,}"
+chunk_size_str = f"{chunk_size:,}"
 
 cores = multiprocessing.cpu_count()
 cores2u = round(cores / 3)
-print(f"{cores=}\t|\t{cores2u=}\t|\t{chunk_size=}")
+print(f"{cores=}\t|\t{cores2u=}\t|\t{chunk_size_str=}")

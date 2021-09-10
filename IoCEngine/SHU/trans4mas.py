@@ -1,5 +1,7 @@
 import pandas as pd
 
+from logging import Logger
+
 import IoCEngine.SHU.catalogues as ctlg
 from IoCEngine.SHU.amounts import normal_numbers, round_numbers, float_numbers, round_amt
 # from IoCEngine.SHU.d8s import to_date, transform_date
@@ -44,7 +46,7 @@ for fld in (f for f in amnt_fields() if f in cxcf_data):
 
 
 @profile
-def fix_overdues(file_dict, cxcf_data):
+def fix_overdues(file_dict: dict, cxcf_data: pd.DataFrame):
     log_msg, mdjlog = '', get_logger(file_dict['dp_name'])
     mdjlog.info("Fixing Overdue Amounts. ..")
 
@@ -57,7 +59,7 @@ def fix_overdues(file_dict, cxcf_data):
 
 
 @profile
-def fix_number_fields(df, mdjlog=None):
+def fix_number_fields(df: pd.DataFrame, mdjlog: Logger = None):
     flds2u = set(f for f in number_fields() if f in df)
     try:
         for fld in flds2u:
@@ -75,7 +77,7 @@ def fix_number_fields(df, mdjlog=None):
 
 
 @profile
-def fac_vals(file_dict, cxcf_data, mdjlog=None):
+def fac_vals(file_dict: dict, cxcf_data: pd.DataFrame, mdjlog: Logger = None):
     mdjlog = get_logger(file_dict['dp_name'])
     mdjlog.info(cxcf_data.shape)
     log_msg = ''
@@ -252,7 +254,7 @@ def fac_vals(file_dict, cxcf_data, mdjlog=None):
 
 
 @profile
-def df_d8s2str(df, mdjlog):
+def df_d8s2str(df: pd.DataFrame, mdjlog: Logger):
     try:
         flds2u = [fld for fld in date_fields() if fld in df]
         for fld in flds2u:
@@ -267,7 +269,7 @@ def df_d8s2str(df, mdjlog):
 
 
 @profile
-def df_round_amts(df, mdjlog):
+def df_round_amts(df: pd.DataFrame, mdjlog: Logger):
     try:
         flds2u = [fld for fld in amnt_fields() if fld in df]
         for fld in flds2u:
@@ -281,7 +283,7 @@ def df_round_amts(df, mdjlog):
 
 
 @profile
-def corp_vals(file_dict, cmcs_data, mdjlog=None):
+def corp_vals(file_dict: dict, cmcs_data: pd.DataFrame, mdjlog: Logger = None):
     mdjlog = get_logger(file_dict['dp_name'])
     log_msg = ''
     if cmcs_data is not None and not cmcs_data.empty:
@@ -404,7 +406,7 @@ def corp_vals(file_dict, cmcs_data, mdjlog=None):
 
 
 @profile
-def ndvdl_vals(file_dict, cncs_data, mdjlog=None):
+def ndvdl_vals(file_dict: dict, cncs_data: pd.DataFrame, mdjlog: Logger = None):
     mdjlog = mdjlog if mdjlog else get_logger(file_dict['dp_name'])
     log_msg = ''
     if cncs_data is not None and not cncs_data.empty:
@@ -582,7 +584,7 @@ def ndvdl_vals(file_dict, cncs_data, mdjlog=None):
         return cncs_data
 
 
-def fix_date_fields(df, mdjlogger):
+def fix_date_fields(df: pd.DataFrame, mdjlogger: Logger):
     flds2u = set(f for f in date_fields() if f in df)
     for fld in flds2u:
         try:
@@ -598,7 +600,7 @@ def fix_date_fields(df, mdjlogger):
                 mdjlogger.info(f"Error {e} in field {fld}")
 
 
-def fix_amt_fields(df, mdjlogger):
+def fix_amt_fields(df: pd.DataFrame, mdjlogger: Logger):
     flds2u = set(f for f in amnt_fields() if f in df)
     for fld in flds2u:
         df.loc[df[fld] == '', fld] = 0

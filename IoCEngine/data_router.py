@@ -61,11 +61,11 @@ def worksheet_datatype(name, fn):
         return 'ndvdlfac', name
 
     #
-    elif 'principal' == name_lower or 'principals' == name_lower or 'officers' == name_lower or (
+    elif  name_lower in ('prnc', 'principal', 'principals', 'officers', ) or (
             'principal' in name_lower and 'officers' in name_lower):
         return 'prnc', name
 
     #
-    elif 'guarantor' == name_lower or 'guarantors' == name_lower or (
+    elif name_lower in ('grntr', 'guarantor', 'guarantors', ) or (
             ('guarantor' in name_lower or 'guarantors' in name_lower) and 'information' in name_lower):
         return 'grntr', name

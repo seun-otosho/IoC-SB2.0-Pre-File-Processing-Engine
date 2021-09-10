@@ -351,10 +351,10 @@ def stream_grntr(_type: str, index_col: str, df: pd.DataFrame()):
 
 @profile
 def stream_prnc(_type: str, index_col: str, df: pd.DataFrame()):
-    pdf0 = df[ps0 + xtr_cols]
     # for fld in psa:
-    for fld in [f for f in psa if f not in df.columns]:
+    for fld in [f for f in psa+xtr_cols if f not in df.columns]:
         df[fld] = ''
+    pdf0 = df[ps0 + xtr_cols]
     pdf1 = df[ps1 + psa + xtr_cols]
     pdf1.columns = ps0 + psa + xtr_cols
     pdf = pd.concat([pdf0, pdf1])
@@ -513,7 +513,7 @@ def indexDF(data_store, data_tpl, df, dp_name, mdjlogger):
     if _type == 'guarantors':
         # df_stream = stream_grntr(_type, 'ndx', df)
         try:
-            mdjlogger.info("#IndexinG!")
+            mdjlogger.info(f"#IndexinG! {_type.upper()}")
             bulk_resp = helpers.bulk(es, stream_grntr(_type, 'ndx', df), refresh=True)
             mdjlogger.info(f"{bulk_resp=}")
             mdjlogger.info(". .. about {} {} data indexed".format(df.shape[0], data_type))
@@ -522,7 +522,7 @@ def indexDF(data_store, data_tpl, df, dp_name, mdjlogger):
     elif _type == 'principal_officers':
         # df_stream = stream_prnc(_type, 'ndx', df)
         try:
-            mdjlogger.info("#IndexinG!")
+            mdjlogger.info(f"#IndexinG! {_type.upper()}")
             bulk_resp = helpers.bulk(es, stream_prnc(_type, 'ndx', df), refresh=True)
             mdjlogger.info(f"{bulk_resp=}")
             mdjlogger.info(". .. about {} {} data indexed".format(df.shape[0], data_type))

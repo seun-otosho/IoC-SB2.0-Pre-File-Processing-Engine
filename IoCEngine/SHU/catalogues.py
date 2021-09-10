@@ -267,6 +267,7 @@ def relation_type():
         "proprietor": "006",
         "shareholder": "007",
         "managing director": "008",
+        "director": "009",
         "executive director": "009",
         "alternate director": "010",
         "trustee": "011",
