@@ -6,12 +6,12 @@ Created 2016
 @author: tolorun
 """
 
-from IoCEngine.celeryio import app
+# from IoCEngine.celeryio import app
 from IoCEngine.logger import get_logger
 from IoCEngine.utils.file import DataFiles
 
 
-@app.task(name='upd8batch')
+# @app.task(name='upd8batch')
 def upd8batch(process3DBatch, batches2U):  # , sb2file, syndifiles
     # if not process3DBatch['data_type'] in ('all', 'allcorp', 'allndvdl',):
     mdjlog = get_logger(batches2U[0]['dp_name'])

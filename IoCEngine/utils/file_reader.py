@@ -3,7 +3,7 @@ import os
 import pandas as pd
 
 from IoCEngine import drop_zone
-from IoCEngine.celeryio import app
+# from IoCEngine.celeryio import app
 from IoCEngine.commons import mk_dp_x_dir, profile
 from IoCEngine.data_router import worksheet_datatype as confirm_data
 from IoCEngine.logger import get_logger
@@ -60,7 +60,7 @@ def rw_file(dz, file, nums):
         mdjlog.error(e)
 
 
-@app.task(name='xtrct_ff_data')
+# @app.task(name='xtrct_ff_data')
 def xtrct_ff_data(file_meta, batch_no=None, mdjlog=None):
     file = file_meta['file_name']
     mdjlog = mdjlog if mdjlog else get_logger(file.split('_')[0])
@@ -156,7 +156,7 @@ def handle_ff_xcpxn(e, expected, file, line, saw):
     return df
 
 
-@app.task(name='xtrct_ws_data')
+# @app.task(name='xtrct_ws_data')
 def xtrct_ws_data(file_meta: DataFiles, sgmnt: tuple = None, mdjlog=None):
     mdjlog = mdjlog if mdjlog else get_logger(file_meta['file_name'].split('_')[0])
     try:

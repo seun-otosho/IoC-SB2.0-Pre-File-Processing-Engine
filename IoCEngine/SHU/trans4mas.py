@@ -3,7 +3,7 @@ import pandas as pd
 import IoCEngine.SHU.catalogues as ctlg
 from IoCEngine.SHU.amounts import normal_numbers, round_numbers, float_numbers, round_amt
 # from IoCEngine.SHU.d8s import to_date, transform_date
-from IoCEngine.SHU.d8s import d8s2str
+from IoCEngine.SHU.d8s import d8s2str, x2d8
 from IoCEngine.SHU.numbers import check_days
 from IoCEngine.commons import get_logger, right_now, profile
 
@@ -57,15 +57,18 @@ def fix_overdues(file_dict, cxcf_data):
 
 
 @profile
-def fix_number_fields(cxcf_data, mdjlog=None):
-    flds2u = set(f for f in number_fields() if f in cxcf_data)
+def fix_number_fields(df, mdjlog=None):
+    flds2u = set(f for f in number_fields() if f in df)
     try:
         for fld in flds2u:
             try:
                 mdjlog.info(f"df[{fld}].dtype\t|\tdf[{fld}].astype(float).dtype")
+                df[fld] = df[fld].astype(float)
             except Exception as e:
                 mdjlog.info(f"Error {e} in field {fld}")
-                cxcf_data[fld] = cxcf_data[fld].apply(float_numbers)
+                df[fld] = df[fld].apply(float_numbers)
+            df[fld].fillna(0, inplace=True)
+            df[fld] = df[fld].apply(int)
 
     except Exception as e:
         mdjlog.warn(f'log_msg: overdue_days\t\twarning:\t{e}')
@@ -577,3 +580,34 @@ def ndvdl_vals(file_dict, cncs_data, mdjlog=None):
         mdjlog.info("Individual Data shape: {}".format(cncs_data.shape))
         # count_down(None, 5)
         return cncs_data
+
+
+def fix_date_fields(df, mdjlogger):
+    flds2u = set(f for f in date_fields() if f in df)
+    for fld in flds2u:
+        try:
+            mdjlogger.info(f"df['{fld}']\t= pd.to_datetime(df['{fld}'], dayfirst=True).dt.date")
+            df[fld] = pd.to_datetime(df[fld], dayfirst=True).dt.date
+        except Exception as e:
+            mdjlogger.info(f"Re~Routing::Error {e} in field {fld}")
+            try:
+                df[fld] = df[fld].apply(x2d8)
+                # df[fld] = df[fld].apply(lambda x: date.fromtimestamp(x) if x else None)
+                # mdjlogger.info(f"df[{fld}] = df['{fld}'].apply(lambda x: date.fromtimestamp(x) if x else None)")
+            except Exception as e:
+                mdjlogger.info(f"Error {e} in field {fld}")
+
+
+def fix_amt_fields(df, mdjlogger):
+    flds2u = set(f for f in amnt_fields() if f in df)
+    for fld in flds2u:
+        df.loc[df[fld] == '', fld] = 0
+        try:
+            mdjlogger.info(f"df[{fld}].dtype\t|\tdf[{fld}].astype(float).dtype")
+            df[fld] = df[fld].astype(float)
+        except Exception as e:
+            mdjlogger.info(f"Error {e} in field {fld}")
+            df[fld] = df[fld].apply(float_numbers)
+            mdjlogger.info(f"df[{fld}].dtype\t|\tdf[{fld}].astype(float).dtype")
+        df[fld].fillna(0, inplace=True)
+        df[fld] = df[fld].apply(abs)

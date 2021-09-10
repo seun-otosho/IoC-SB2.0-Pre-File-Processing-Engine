@@ -1,14 +1,13 @@
-from datetime import datetime, date
+from datetime import datetime
 
 import pandas as pd
 # import progressbar
 from elasticsearch import helpers
 
-from IoCEngine.SHU.amounts import float_numbers, normal_numbers
+from IoCEngine.SHU.amounts import normal_numbers
 # from IoCEngine.SHU.d8s import to_date
 # from IoCEngine.SHU.trans4mas import fields2date, df_flds2date, fields2date, trnsfm_amts
-from IoCEngine.SHU.d8s import x2d8
-from IoCEngine.SHU.trans4mas import fix_overdues, fix_number_fields
+from IoCEngine.SHU.trans4mas import fix_overdues, fix_number_fields, fix_amt_fields, fix_date_fields
 from IoCEngine.commons import (
     cdt_udf_modes, cf, count_down, cs, data_type_dict, fs, getID, ns, submission_type_dict, gs, ps, re_ndx_flds,
     std_out, profile
@@ -26,7 +25,7 @@ logger = get_logger()
 logger.info('test')
 
 ps0, ps1, psa, xtr_cols = prnc_cols()
-grntr_type_corp_abbrvxns = {"crp": "corporate", "corporate": "corporate", "002": "corporate", }
+grntr_type_corp_abbrvxns = {"crp": "corporate", "corporate": "corporate", "001": "corporate", }
 
 
 def corp_grntr_type_check(grntr_type: str) -> bool:
@@ -188,11 +187,11 @@ def prep_corp_id(dp_ac: str, biz_reg_no: str, biz_name: str, cycle_ver: str) -> 
     try:
         if biz_reg_no not in ('', None):
             _id = f"{dp_ac}-R-{biz_reg_no}"
-            logger.info(f"{_id=}")
+            # logger.info(f"{_id=}")
             return f"{_id}-{cycle_ver}"
         if biz_name not in ('', None):
             _id = f"{dp_ac}-C-{biz_name}"
-            logger.info(f"{_id=}")
+            # logger.info(f"{_id=}")
             return f"{_id}-{cycle_ver}"
     except Exception as e:
         logger.error(e)
@@ -203,26 +202,26 @@ def prep_ndvdl_id(dp_ac: str, bvn: str, i_pass_no: str, drivin_license_no: str, 
     try:
         if bvn not in ('', None) and int(bvn) != 0:
             _id = f"{dp_ac}-B-{bvn}"
-            logger.info(f"{_id=}")
+            # logger.info(f"{_id=}")
             return f"{_id}-{cycle_ver}"
         if i_pass_no not in ('', None):
             _id = f"{dp_ac}-I-{i_pass_no}"
-            logger.info(f"{_id=}")
+            # logger.info(f"{_id=}")
             return f"{_id}-{cycle_ver}"
         if drivin_license_no not in ('', None):
             _id = f"{dp_ac}-D-{drivin_license_no}"
-            logger.info(f"{_id=}")
+            # logger.info(f"{_id=}")
             return f"{_id}-{cycle_ver}"
         if national_id_no not in ('', None):
             _id = f"{dp_ac}-N-{national_id_no}"
-            logger.info(f"{_id=}")
+            # logger.info(f"{_id=}")
             return f"{_id}-{cycle_ver}"
         name = last_name if last_name not in ('', None) else first_name
-        logger.info(f"{name=}")
+        # logger.info(f"{name=}")
         name2u = f"{last_name} {first_name}" if last_name not in ('', None) and first_name not in ('', None) else name
         if name2u not in ('', None):
             _id = f"{dp_ac}-F-{name2u}"
-            logger.info(f"{_id=}")
+            # logger.info(f"{_id=}")
             return f"{_id}-{cycle_ver}"
     except Exception as e:
         logger.error(e)
@@ -243,17 +242,17 @@ def prep_sngl_col_id(args):
 
 def prep_grntr_id(args):
     try:
-        if all(arg.strip() in ('', None,) for arg in args[4:]):
-            logger.info(f"{args[4:]=}")
+        if all(arg.strip() if isinstance(arg, str) else arg in ('', None,) for arg in args[4:]):
+            # logger.info(f"{args[4:]=}")
             return None
         cycle_ver, dpid, account_no, grntr_type = args[:4]
-        biz_name, biz_reg_no = (i.strip() for i in args[4:6])
+        biz_name, biz_reg_no = (i.strip() if isinstance(i, str) else i for i in args[4:6])
         last_name, first_name, national_id_no, drivin_license_no, bvn, i_pass_no = (i.strip() for i in args[6:])
-        logger.info(
-            f'''{cycle_ver=}, {account_no=}, {grntr_type=},
-            {biz_name=}, {biz_reg_no=},
-            {last_name=}, {first_name=}, {national_id_no=}, {drivin_license_no=}, {bvn=}, {i_pass_no=}'''
-        )
+        # logger.info(
+        #     f'''{cycle_ver=}, {account_no=}, {grntr_type=},
+        #     {biz_name=}, {biz_reg_no=},
+        #     {last_name=}, {first_name=}, {national_id_no=}, {drivin_license_no=}, {bvn=}, {i_pass_no=}'''
+        # )
         dp_ac = f"{dpid}-{account_no}"
         if corp_grntr_type_check(grntr_type):
             return prep_corp_id(dp_ac, biz_reg_no, biz_name, cycle_ver)
@@ -267,9 +266,9 @@ def prep_prnc_id(args):
         if all(arg in ('', None,) for arg in args[2:]):
             return None
         cycle_ver, dpid, cust_id, last_name, first_name, national_id_no, drivin_license_no, bvn, i_pass_no = args
-        logger.info(f"""{cycle_ver=}, {dpid=}, {cust_id=},
-            {last_name=}, {first_name=}, {national_id_no=}, {drivin_license_no=}, {bvn=}, {i_pass_no=}"""
-                    )
+        # logger.info(f"""{cycle_ver=}, {dpid=}, {cust_id=},
+        #     {last_name=}, {first_name=}, {national_id_no=}, {drivin_license_no=}, {bvn=}, {i_pass_no=}"""
+        #             )
         dp_ac = f"{dpid}-{cust_id}"
         return prep_ndvdl_id(
             dp_ac, bvn, i_pass_no, drivin_license_no, national_id_no, last_name, first_name, cycle_ver)
@@ -323,7 +322,7 @@ def stream_df(_type, index_col, df):
             yield from stream_from(d, None, None)
         except Exception as e:
             logger.error(e)
-        std_out(f"Indexing. .. _: {d['_id']} @{i} OF {df.shape[0]}\t\t")
+        std_out(f"Indexing. .. _: {d['_id']} @{i:,} OF {df.shape[0]:,}\t\t")
         i += 1
 
 
@@ -346,7 +345,7 @@ def stream_grntr(_type: str, index_col: str, df: pd.DataFrame()):
             yield from stream_from(d, sub, typ)
         except Exception as e:
             logger.error(e)
-        std_out(f"Indexing. .. _: {d['_id']} @{i} OF {df.shape[0]}\t\t")
+        std_out(f"Indexing. .. _: {d['_id']} @{i} OF {df.shape[0]:,}\t\t")
         i += 1
 
 
@@ -372,7 +371,7 @@ def stream_prnc(_type: str, index_col: str, df: pd.DataFrame()):
             yield from stream_from(d, sub, typ)
         except Exception as e:
             logger.error(e)
-        std_out(f"Indexing. .. _: {d['_id']} @{i} OF {pdf.shape[0]}\t\t")
+        std_out(f"Indexing. .. _: {d['_id']} @{i} OF {pdf.shape[0]:,}\t\t")
         i += 1
 
 
@@ -477,19 +476,10 @@ def data2col(args, df):
 
 def indexDF(data_store, data_tpl, df, dp_name, mdjlogger):
     fix_amt_fields(df, mdjlogger)
-    #
-    # for col in flds2u:
-    #     try:
-    #         df.loc[:, col] = df[col].apply(lambda x: str(x) if x else '')
-    #     except Exception as e:
-    #         mdjlogger.error(f"Field Error: {e} in {col} field")
+
     if data_store.split('_')[0] in ('facility',):
-        # df = trnsfm_amts(data_tpl[0], df)
         fix_overdues(data_tpl[0], df)
         fix_number_fields(df, mdjlog=mdjlogger)
-    # df =
-    # df_flds2date(df, data_tpl[-1])
-    # df = fields2date(data_tpl[0], df)
 
     fix_date_fields(df, mdjlogger)
 
@@ -558,34 +548,6 @@ def indexDF(data_store, data_tpl, df, dp_name, mdjlogger):
     #     mdjlogger.error(f"{e=}")
     #
     return data_type  # , df
-
-
-def fix_date_fields(df, mdjlogger):
-    flds2u = set(f for f in date_fields() if f in df)
-    for fld in flds2u:
-        try:
-            df[fld] = pd.to_datetime(df[fld]).dt.date
-            mdjlogger.info(f"df['{fld}'] = pd.to_datetime(df['{fld}']).dt.date")
-        except Exception as e:
-            mdjlogger.info(f"Re~Routing::Error {e} in field {fld}")
-            try:
-                df[fld] = df[fld].apply(x2d8)
-                # df[fld] = df[fld].apply(lambda x: date.fromtimestamp(x) if x else None)
-                # mdjlogger.info(f"df[{fld}] = df['{fld}'].apply(lambda x: date.fromtimestamp(x) if x else None)")
-            except Exception as e:
-                mdjlogger.info(f"Error {e} in field {fld}")
-
-
-def fix_amt_fields(df, mdjlogger):
-    flds2u = set(f for f in amnt_fields() if f in df)
-    for fld in flds2u:
-        try:
-            mdjlogger.info(f"df[{fld}].dtype\t|\tdf[{fld}].astype(float).dtype")
-        except Exception as e:
-            mdjlogger.info(f"Error {e} in field {fld}")
-            df[fld] = df[fld].apply(float_numbers)
-            df[fld].fillna(0, inplace=True)
-            mdjlogger.info(f"df[{fld}].dtype\t|\tdf[{fld}].astype(float).dtype")
 
 
 def bulkI(INDEX_NAME, bulk_data):

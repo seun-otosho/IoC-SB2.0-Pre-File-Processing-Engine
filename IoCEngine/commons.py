@@ -265,10 +265,9 @@ def m_or_s(completed=None, start=None):
 
 
 def profile(fn):
-    logger = get_logger()
     @wraps(fn)
     def inner(*args, **kwargs):
-        global logger
+        logger = get_logger('profiler')
         fn_kwargs_str = ', '.join(f'{k}={v}' for k, v in kwargs.items() if not isinstance(v, Logger))
         try:
             logger = [a for a in args if isinstance(a, Logger)][0]

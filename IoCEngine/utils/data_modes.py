@@ -7,8 +7,8 @@ def cdt() -> dict:
             'cust_id', 'account_no', 'acct_stat', 'd8_acct_stat', 'd8_disbursed', 'approved_amt', 'disbursed_amt',
             'outstanding_bal', 'instal_amt', 'currency', 'overdue_days', 'overdue_amt', 'facility_type', 'tenor',
             'repay_freq', 'last_paid_date', 'last_paid_amt', 'maturity_date', 'asset_class', 'legal_stat',
-            'litigxn_date', 'consent_stat', 'secure_stat', 'collateral_type', 'collateral_details', 'prev_acct_no',
-            'prev_name', 'prev_cust_id', 'prev_branch_id'
+            'litigxn_date', 'consent_stat', 'secure_stat', 'collateral_type', 'collateral_details',
+            'prev_acct_no', 'prev_full_name', 'prev_cust_id', 'prev_branch_id'
         ),
         # local common data format for commercial subject
         'comm': (
@@ -93,7 +93,7 @@ def iff() -> dict:
                 'biz_name', 'biz_reg_no', 'biz_d8reg', 'area_code', 'work_phone', 'mobile_no', 'fax_no', 'e_mail_addr',
                 'url', 'birth_date', 'birth_place', 'gender', 'mrtl_stat', 'spouse_surname'),
             'ndvdlfac': (
-                'branch_code', 'prev_branch_code', 'account_no', 'prev_acct_no', 'consent_stat', 'consent_d8from',
+                'branch_code', 'prev_branch_id', 'account_no', 'prev_acct_no', 'consent_stat', 'consent_d8from',
                 'consent_d8to', 'facility_type', 'facility_purpose', 'ownership', 'disbursed_amt', 'd8_approved',
                 'currency', 'int_type', 'int_rate', 'd8_disbursed', 'maturity_date', 'int_repay_freq', 'repay_freq',
                 'int_instal_count', 'instal_count', 'int_instal_amt', 'instal_amt', 'highest_crdt_amt',
@@ -171,16 +171,16 @@ def iff() -> dict:
 
                 'grntr_cust_id', 'grntr_prev_cust_id', 'grntr_type', 'pri_addr_country',
 
+                'national_id_no', 'i_pass_no', 'i_pass_expiry', 'drivin_license_no', 'tax_id',
+
+                # 'iss_auth1', 'bvn', 'id_code1d8xpry', 'iss_auth2', 'id_code2', 'id_code2d8xpry',
+
                 'iss_auth1', 'bvn', 'id_code1d8xpry', 'iss_auth2', 'id_code2', 'id_code2d8xpry',
                 'iss_auth3', 'bvn', 'id_code3d8xpry', 'iss_auth4', 'id_code4', 'id_code4d8xpry',
 
                 'biz_reg_no', 'incorp_date', 'prev_biz_reg_no', 'incorp_cert', 'soc_reg_no', 'biz_tax_id',
 
-                'national_id_no', 'i_pass_no', 'i_pass_expiry', 'drivin_license_no', 'tax_id',
-
-                'iss_auth1', 'bvn', 'id_code1d8xpry', 'iss_auth2', 'id_code2', 'id_code2d8xpry',
-
-                'last_name', 'middle_name', 'first_name', 'full_name', 'prev_full_name', 'birth_date', 'gender',
+                'last_name', 'middle_name', 'first_name', 'full_name', 'prev_full_name', 'birth_incorp_date', 'gender',
                 'mrtl_stat',
 
                 'biz_name', 'shrt_biz_name', 'prev_reg_biz_name', 'biz_corp_type', 'market_association_name',
@@ -206,8 +206,7 @@ def iff() -> dict:
                 'sec_addr_line1', 'sec_addr_line2', 'sec_addr_line3', 'sec_addr_city_lga', 'sec_addr_state',
                 'sec_addr_post_code',
                 'sec_addr_country', 'last_fin_yr_turnover', 'ttl_asset_val', 'no_of_emplye', 'area_code', 'phone_no',
-                'fax_no',
-                'e_mail_addr', 'url',
+                'fax_no', 'e_mail_addr', 'url',
             ),
             'fac': (
                 'branch_code', 'prev_branch_id', 'account_no', 'prev_acct_no', 'consent_stat', 'consent_d8from',
@@ -365,6 +364,13 @@ def date_fields() -> tuple:
 
 def dates_and_number_fields() -> tuple:
     return date_fields() + number_fields()
+
+
+def cols2cat():
+    return ('acct_stat', 'asset_class', 'area_code', 'branch_code', 'consent_stat', 'currency', 'cycle_ver', 'dpid',
+            'employ_stat', 'facility_type', 'facility_purpose', 'gender', 'grnt_cov', 'grntr_type', 'is_sme',
+            'legal_stat', 'mrtl_stat', 'nationality', 'occpaxn', 'ownership', 'prev_branch_id', 'repay_freq',
+            'secure_stat', 'trxn_typ_cod', )
 
 
 def prnc_cols():

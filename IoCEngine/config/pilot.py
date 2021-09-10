@@ -84,7 +84,7 @@ try:
         timeout=100, max_retries=10, retry_on_timeout=True
     )
     es_ver = es.info()['version']['number']
-    print(f"{es_ver=}")
+    print(f"{esver=}")
 except:
     es = Elasticsearch(
         timeout=100, max_retries=10, retry_on_timeout=True
@@ -125,6 +125,7 @@ EsSetup(conEs,'idxName','docTypeName',dset,dMap)
 '''
 
 chunk_size = 40123  # 1234  #  12357  # 45789  #
+chunk_size = f"{chunk_size:,}"
 
 cores = multiprocessing.cpu_count()
 cores2u = round(cores / 3)

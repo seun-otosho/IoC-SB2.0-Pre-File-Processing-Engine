@@ -11,10 +11,11 @@ import datetime
 import os
 import sys
 from importlib import reload
+import multiprocessing as mp
 from subprocess import call
 
 from IoCEngine import drop_zone
-from IoCEngine.celeryio import app
+# from IoCEngine.celeryio import app
 from IoCEngine.commons import count_down, std_out, dp_meta_data, fig_str, profile, multi_pro
 from IoCEngine.logger import get_logger
 from IoCEngine.utils.file import dict_file, xtrct_file_details, DataFiles
@@ -118,7 +119,7 @@ def get_dpid(fl_dtls, mdjlog=None, plf=None):
         mdjlog.debug(e)
 
 
-@app.task(name='fp_router')
+# @app.task(name='fp_router')
 def fp_router(file_id):
     try:
         mdjlog.info('\n' + '*' * 123)
@@ -148,6 +149,13 @@ def grant_all_access():
     call(['chmod', '777', '-R', '/IoC'])
 
 
+def pro_watch(watched):
+    global mdjlog
+    mdjlog = get_logger(watched.lower().split('_')[0])
+    initialize_files(watched, mdjlog=mdjlog)
+    count_down()
+
+
 def the_main_pro():
     """
     This is the entry point for this engine.
@@ -160,16 +168,13 @@ def the_main_pro():
         mdjlog.info(fig_str())
         # data_prvdrs_re = dp_meta_data()
         mdjlog.info(". ..")
-        for seen in watch(drop_zone):
-            multi_pro(pro_watch, seen)
+        for i, seen in enumerate(watch(drop_zone)):
+            # if not i % 2:
+            #     p = mp.Process(target=pro_watch, args=seen )
+            #     p.start()
+            # else:
+            #     pro_watch(seen)
             pro_watch(seen)
-
-
-def pro_watch(watched):
-    global mdjlog
-    mdjlog = get_logger(watched.lower().split('_')[0])
-    initialize_files(watched, mdjlog=mdjlog)
-    count_down()
 
 
 if __name__ == "__main__":

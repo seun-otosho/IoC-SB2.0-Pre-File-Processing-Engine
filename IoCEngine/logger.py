@@ -6,7 +6,7 @@ from os.path import abspath, exists, split, splitext
 
 from IoCEngine import level, log_dir
 
-dcrtd_frmtr = Formatter('%(process)s - %(thread)s @ %(asctime)s {%(name)s:%(lineno)5d - '
+dcrtd_frmtr = Formatter('%(process)s - %(thread)s @ %(asctime)s {%(name)17s:%(lineno)5d - '
                         '%(func_name)14s() ~> %(funcName)18s()} %(levelname)s - %(message)s')
 
 loggers = {}

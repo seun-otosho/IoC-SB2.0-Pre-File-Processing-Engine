@@ -80,7 +80,7 @@ def dict_file(fl, dtls, start, mdjlog=None):
             svd_dtls.update(start=start)
         except Exception as e:
             # mdjlog.warn('{} hence updating existing file name details'.format(e))
-            mdjlog.warn('. .. updating existing file name details')
+            mdjlog.warn(f'{e}. .. updating existing file name details')
             mdjlog.info(data_dtls['file_name'])
             svd_dtls = DataFiles.objects(file_name=data_dtls['file_name']).first()
             svd_dtls.update(re_dropped=svd_dtls['re_dropped'] + 1 if svd_dtls['re_dropped'] is not None else 1,
@@ -99,7 +99,7 @@ class DataFiles(mdb.DynamicDocument):
     in_mod = StringField(required=True, max_length=20)
     out_mod = StringField(required=True, max_length=20)
     file_ext = StringField(required=True, max_length=5)
-    xtra_nfo = StringField(required=False, max_length=20)
+    xtra_nfo = StringField(required=False, max_length=64)
     file_ndx = IntField(required=False)
     cycle_ver = IntField(required=True)
     date_reported = StringField(required=True, max_length=11)

@@ -53,7 +53,7 @@ def worksheet_datatype(name, fn):
 
     elif 'corporate' in name_lower and 'subject' in name_lower:
         return 'corp', name
-    
+
     # un updated data files
     elif 'corp' in name_lower and 'update' in fn.lower():
         return 'corpfac', name
@@ -61,9 +61,11 @@ def worksheet_datatype(name, fn):
         return 'ndvdlfac', name
 
     #
-    elif 'principal' == name_lower or 'principals' == name_lower or 'officers' == name_lower or ('principal' in name_lower and 'officers' in name_lower):
+    elif 'principal' == name_lower or 'principals' == name_lower or 'officers' == name_lower or (
+            'principal' in name_lower and 'officers' in name_lower):
         return 'prnc', name
 
     #
-    elif 'guarantor' == name_lower or 'guarantors' == name_lower or (('guarantor' in name_lower or 'guarantors' in name_lower) and 'information' in name_lower):
+    elif 'guarantor' == name_lower or 'guarantors' == name_lower or (
+            ('guarantor' in name_lower or 'guarantors' in name_lower) and 'information' in name_lower):
         return 'grntr', name

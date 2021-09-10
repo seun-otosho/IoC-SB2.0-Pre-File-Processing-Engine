@@ -3,25 +3,28 @@
 """
 Created 2016
 
-@author: tolorun
+@author: tOlorun
 """
 
 
 from itertools import chain
 from os import sep, listdir
 
-from pandas import ExcelFile
+import pandas as pd
+from openpyxl import load_workbook
+from pandas import ExcelFile, ExcelWriter
 
 from IoCEngine import drop_zone
 # from IoCEngine.SHU.categorize import minify
 from IoCEngine.SHU.trans4mas import corp_vals, ndvdl_vals, fac_vals
-from IoCEngine.celeryio import app
+# from IoCEngine.celeryio import app
 from IoCEngine.commons import (all_all_modes, all_corp_modes, all_ndvdl_modes, cf, cs, fs, nf, ns, getID,
                                mk_dir, mk_dp_x_dir, cdt_udf_modes, sngl_sbjt_in_modes, sgmnt_def, g_meta, gs, ps,
                                profile)
 from IoCEngine.config.pilot import chunk_size as split_var, chunk_size
 from IoCEngine.cores import ppns
 from IoCEngine.logger import get_logger
+from IoCEngine.utils.data_modes import cdt
 from IoCEngine.utils.db2data import combo_data, fac_data, corp_data, ndvdl_data, upd8DFstatus
 from IoCEngine.utils.file import DataFiles, DataBatchProcess, dict_file, xtrct_file_details
 from IoCEngine.utils.file_reader import xtrct_all_data, xtrct_ff_data, xtrct_ws_data
@@ -37,7 +40,7 @@ load3Dbatch = None
 mk_dir(drop_zone)
 
 
-@app.task(name='route_file')
+# @app.task(name='route_file')
 def route_file(file_data, mdjlog=None):
     mdjlog = get_logger(file_data['dp_name'])
     if isinstance(file_data, str):
@@ -83,8 +86,10 @@ def route_filed_data(file_data, mdjlog=None):
     load3DSgmnts = []
     for sgmnt in load3DSegments:
         load3DSgmnts.append(sgmnt_def[sgmnt]) if sgmnt in sgmnt_def.keys() else None
-        if sgmnt in ('allcorp',): load3DSgmnts.append('corporate'), load3DSgmnts.append('facility')
-        if sgmnt in ('allndvdl',): load3DSgmnts.append('facility'), load3DSgmnts.append('individual')
+        if sgmnt in ('allcorp',):
+            load3DSgmnts.append('corporate'), load3DSgmnts.append('facility')
+        if sgmnt in ('allndvdl',):
+            load3DSgmnts.append('facility'), load3DSgmnts.append('individual')
 
     dp_name, xtrcxn_zone = loaded_batch['dp_name'], mk_dp_x_dir(loaded_batch['dp_name'].upper())
     if loaded_batch['data_type'] in sngl_sbjt_in_modes:
@@ -162,7 +167,7 @@ def route_filed_data(file_data, mdjlog=None):
         # corp_pro = mupro.Process(target=handle_corporate_data, args=corp_argz)
         # corp_pro.start()
         # upd8batch(load3Dbatch, batches2use)  # , syndifiles
-    mdjlog.info("ndvdl: {}, ndvdlfac: {}".format(ndvdl_df is not None, ndvdlfac_df is not None))
+    mdjlog.info(f"ndvdl: {ndvdl_df is not None}, ndvdlfac: {ndvdlfac_df is not None}")
     if ndvdlfac and ndvdl:
         handle_individual_data(dp_name, load3Dbatch, mdjlog, ndvdl, ndvdl_df, ndvdlfac, ndvdlfac_df, ndx_column, Bs2u)
         # ndvdl_argz = (dp_name, load3Dbatch, mdjlog, ndvdl, ndvdl_df, ndvdlfac, ndvdlfac_df, ndx_column)
@@ -316,27 +321,20 @@ def re_init_vars():
 @profile
 def handle_individual_data(dp_name, load3Db, mdjlog, ndvdl, ndvdl_df, ndvdlfac, ndvdlfac_df, ndx_column, b2u,
                            chunk_mode=None):
+    mdjlog.info(f"sbjt's {ndx_column}s {ndvdl_df[ndx_column].nunique():11,}\t"
+                f"|\tcrdt's {ndx_column}s: {ndvdlfac_df[ndx_column].nunique():11,}")
     try:
         ndvdlfac_df_no_sbjt = ndvdlfac_df[~ndvdlfac_df[ndx_column].isin(ndvdl_df[ndx_column])]
         ndvdl_df_no_crdt = ndvdl_df[~ndvdl_df[ndx_column].isin(ndvdlfac_df[ndx_column])]
 
         if not ndvdlfac_df_no_sbjt.empty or not ndvdl_df_no_crdt.empty:
-            unprocessed = mk_dp_x_dir(dp_name.upper() + sep + 'unprocessed')
-            unprocessed_fyl = ExcelFile(f"{unprocessed+dp_name.upper()} Exceptions.xlsx")
-        if not ndvdlfac_df_no_sbjt.empty:
-            mdjlog.info(f'There are {ndvdlfac_df_no_sbjt.shape[0]} '
-                        'Individual Credit Record reported without CORRESPONDING Subject Record')
-            ndvdlfac_df_no_sbjt.to_excel(unprocessed + sep + unprocessed_fyl, index=False)
-
-        if not ndvdl_df_no_crdt.empty:
-            mdjlog.info(f'There are {ndvdl_df_no_crdt.shape[0]} '
-                        'Individual Subject Record reported without CORRESPONDING Credit Record')
+            handle_missing_segment_records(dp_name, mdjlog, ndvdl_df_no_crdt, ndvdlfac_df_no_sbjt, "Cons")
 
         if ndvdl and ndvdlfac:
             ndvdl2df = ndvdl_vals(load3Db, ndvdl_df, )
             ndvdlfac2df = fac_vals(load3Db, ndvdlfac_df, )
-            mdjlog.info(f"individual facility counts is {ndvdlfac2df.shape[0]} "
-                        f"individual subject count is {ndvdl2df.shape[0]}")
+            mdjlog.info(f"""\n\t\t\tindividual facility count is {ndvdlfac2df.shape[0]:10,}
+            individual subject  count is {ndvdl2df.shape[0]:10,}""")
             datCat = 'con'
             ctgry_dtls, dp_meta = g_meta(datCat, dp_name, load3Db)
             syndifiles = syndic8data(ndvdlfac2df, ndvdl2df, load3Db, ctgry_dtls, datCat, dp_meta, b2u, chunk_mode,
@@ -346,26 +344,52 @@ def handle_individual_data(dp_name, load3Db, mdjlog, ndvdl, ndvdl_df, ndvdlfac, 
         mdjlog.error(e)
 
 
+def handle_missing_segment_records(dp_name, mdjlog, sbjt_df_no_crdt, fac_df_no_sbjt, ctype):
+    fac_chck = not fac_df_no_sbjt.empty and fac_df_no_sbjt.shape[0] > 0
+    sbj_chck = not sbjt_df_no_crdt.empty and sbjt_df_no_crdt.shape[0] > 0
+
+    if fac_chck or sbj_chck:
+        unprocessed = mk_dp_x_dir(dp_name.upper() + sep + 'unprocessed')
+        try:
+            xstn = load_workbook(f"{unprocessed}{sep}{dp_name.upper()} Exceptions (unprocessed).xlsx")
+        except Exception as e:
+            mdjlog.error(e)
+            xstn = None
+        unprocessed_fyl = ExcelWriter(f"{unprocessed}{sep}{dp_name.upper()} Exceptions (unprocessed).xlsx",
+                                      engine='openpyxl')
+        if xstn:
+            unprocessed_fyl.book = xstn
+            unprocessed_fyl.sheets = {x.title: x for x in xstn.worksheets}
+
+    if fac_chck:
+        flds2u = cdt()['fac']
+        fac_df_no_sbjt = fac_df_no_sbjt.reindex(columns=flds2u)
+        mdjlog.info(f'There are {fac_df_no_sbjt.shape[0]:10,} '
+                    f'{ctype} Credit Record reported without CORRESPONDING Subject Record')
+        fac_df_no_sbjt.to_excel(unprocessed_fyl, index=False, sheet_name=f"{ctype}. Facilities no Subjects")
+
+    if sbj_chck:
+        flds2u = cdt()[ctype.lower()]
+        sbjt_df_no_crdt = sbjt_df_no_crdt.reindex(columns=flds2u)
+        mdjlog.info(f'There are {sbjt_df_no_crdt.shape[0]:10,} '
+                    f'{ctype} Subject Record reported without CORRESPONDING Credit Record')
+        sbjt_df_no_crdt.to_excel(unprocessed_fyl, index=False, sheet_name=f"{ctype}. Subjects no Facilities")
+
+    if unprocessed_fyl:
+        unprocessed_fyl.save()
+
+
 @profile
 def handle_corporate_data(dp_name, load3Db, mdjlog, corp, corp_df, corpfac, corpfac_df, ndx_column, b2u,
                           chunk_mode=None):
+    mdjlog.info(f"sbjt's {ndx_column}s {corp_df[ndx_column].nunique():11,}\t"
+                f"|\tcrdt's {ndx_column}s {corpfac_df[ndx_column].nunique():11,}")
     try:
         corpfac_df_no_sbjt = corpfac_df[~corpfac_df[ndx_column].isin(corp_df[ndx_column])]
         corp_df_no_crdt = corp_df[~corp_df[ndx_column].isin(corpfac_df[ndx_column])]
 
         if not corpfac_df_no_sbjt.empty or not corp_df_no_crdt.empty:
-            unprocessed = mk_dp_x_dir(dp_name.upper() + sep + 'unprocessed')
-            unprocessed_fyl = ExcelFile(f"{unprocessed+dp_name.upper()} Exceptions.xlsx")
-        if not corpfac_df_no_sbjt.empty:
-            mdjlog.info(f'There are {corpfac_df_no_sbjt.shape[0]} '
-                        'Corporate Credit Record reported without CORRESPONDING Subject Record')
-            # todo we can now decide to drop records with exceptions
-            # todo and log then as log_df_xcpxns(load3Dbatch, corpfac_df_no_sbjt, None, (error_cat, error_desc,), False)
-        if not corp_df_no_crdt.empty:
-            mdjlog.info(f'There are {corp_df_no_crdt.shape[0]} '
-                        'Corporate Subject Record reported without CORRESPONDING Credit Record')
-            # todo we can now decide to drop records with exceptions
-            # todo and log then as log_df_xcpxns(load3Dbatch, corp_df_no_crdt, None, (error_cat, error_desc,), True)
+            handle_missing_segment_records(dp_name, mdjlog, corp_df_no_crdt, corpfac_df_no_sbjt, "Corp")
 
         if corp and corpfac:
             corp2df = corp_vals(load3Db, corp_df, )
@@ -374,8 +398,8 @@ def handle_corporate_data(dp_name, load3Db, mdjlog, corp, corp_df, corpfac, corp
             # corpfac2df = ppns(fac_vals, corpfac_df, load3Dbatch, True)
             # todo R3Visit xcpxn_rex(corpfac2df, corp2df, 'corporate', load3Dbatch)
             # todo del corp_df, corpfac_df, fac_df
-            mdjlog.info(f"""\n\t\t\tcorporate facility counts is {corpfac2df.shape[0]}
-            corporate subject count is {corp2df.shape[0]}""")
+            mdjlog.info(f"""\n\t\t\tcorporate facility count is {corpfac2df.shape[0]:10,}
+            corporate subject  count is {corp2df.shape[0]:10,}""")
             datCat = 'com'
             ctgry_dtls, dp_meta = g_meta(datCat, dp_name, load3Db)
             syndifiles = syndic8data(corpfac2df, corp2df, load3Db, ctgry_dtls, datCat, dp_meta, b2u, chunk_mode,
@@ -397,10 +421,10 @@ def rez_combined_data(corp, corpfac, dpid, loaded_batch, ndvdl, ndvdlfac, mdjlog
         if any(x in cf for x in load3DSegments) and loaded_batch['status'] == 'Loaded':
             fac_type = 'corpfac' if 'fac' not in load3DSegments else 'fac'
             corpfac, corpfac_df = fac_data(dpid, loaded_batch, fac_type)
-            try:
-                corpfac2df = corpfac_df[corpfac_df[ndx_column].isin(corp_df[ndx_column])]  # todo remove .sample(55)
-            except Exception as e:
-                mdjlog.warn(e)
+            # try:
+            #     corpfac2df = corpfac_df[corpfac_df[ndx_column].isin(corp_df[ndx_column])]
+            # except Exception as e:
+            #     mdjlog.warn(e)
     elif loaded_batch['data_type'] == 'all':
         corp_df, corpfac2df = None, None
     if any(x in ns for x in load3DSegments) and loaded_batch['status'] == 'Loaded':
@@ -411,19 +435,29 @@ def rez_combined_data(corp, corpfac, dpid, loaded_batch, ndvdl, ndvdlfac, mdjlog
             ndvdlfac, ndvdlfac_df = fac_data(dpid, loaded_batch, fac_type)
         elif 'fac' in load3DSegments:
             ndvdlfac, ndvdlfac_df = True, corpfac_df
-        try:
-            ndvdlfac2df = ndvdlfac_df[ndvdlfac_df[ndx_column].isin(ndvdl_df[ndx_column])]
-        except Exception as e:
-            mdjlog.warn(e)
+        # try:
+        #     ndvdlfac2df = ndvdlfac_df[ndvdlfac_df[ndx_column].isin(ndvdl_df[ndx_column])]
+        # except Exception as e:
+        #     mdjlog.warn(e)
     if loaded_batch['data_type'] == 'all':
-        del corpfac_df, ndvdlfac_df
-        return corp, corp_df, corpfac, corpfac2df, ndvdl, ndvdl_df, ndvdlfac, ndvdlfac2df
+        # del corpfac_df, ndvdlfac_df
+        # return corp, corp_df, corpfac, corpfac2df, ndvdl, ndvdl_df, ndvdlfac, ndvdlfac2df
+        # todo check crossing IDs
+        return corp, corp_df, corpfac, corpfac_df, ndvdl, ndvdl_df, ndvdlfac, ndvdlfac_df
     if loaded_batch['data_type'] in all_corp_modes:
-        del corpfac_df
-        return corp, corp_df, corpfac, corpfac2df, False, None, False, None
+        # del corpfac_df
+        # return corp, corp_df, corpfac, corpfac2df, False, None, False, None
+        mdjlog.info(f"CORP sbjt's {ndx_column}s {ndvdl_df[ndx_column].nunique():11,}\t"
+                    f"|\tcrdt's {ndx_column}s: {ndvdlfac_df[ndx_column].nunique():11,}"
+                    f"|\tcrdt's account numbers: {ndvdlfac_df['account_no'].nunique():11,}")
+        return corp, corp_df, corpfac, corpfac_df, False, None, False, None
     if loaded_batch['data_type'] in all_ndvdl_modes:
-        del ndvdlfac_df
-        return False, None, False, None, ndvdl, ndvdl_df, ndvdlfac, ndvdlfac2df
+        # del ndvdlfac_df
+        # return False, None, False, None, ndvdl, ndvdl_df, ndvdlfac, ndvdlfac2df
+        mdjlog.info(f"NDVDL sbjt's {ndx_column}s {ndvdl_df[ndx_column].nunique():11,}\t"
+                    f"|\tcrdt's {ndx_column}s: {ndvdlfac_df[ndx_column].nunique():11,}"
+                    f"|\tcrdt's account numbers: {ndvdlfac_df['account_no'].nunique():11,}")
+        return False, None, False, None, ndvdl, ndvdl_df, ndvdlfac, ndvdlfac_df
 
 
 def rez_combo_data(combo, combo_df, dpid, loaded_batch):
@@ -634,7 +668,7 @@ def get_subj_file(file_dict):
     return s_f
 
 
-@app.task(name='get_file_set')
+# @app.task(name='get_file_set')
 def get_file_set(file_dict_data):
     file = file_dict_data['file_name']
     subj_file = file if file_dict_data['data_type'] in ('comm', 'cons') else None

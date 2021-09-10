@@ -1,19 +1,19 @@
-flask
+flask-admin
 flask-sqlalchemy
-celery
-flask-migrate
+# celery
+# flask-migrate
 flask-mongoengine
 elasticsearch
 pandas
-flask-user
+# flask-user
 psycopg2
 psycopg2-binary
 pandasticsearch
 openpyxl
-progressbar2
+# progressbar2
 SQLAlchemy
 pymongo
 pytz
 pyfiglet
 mongoengine
-WTForms
+# WTForms

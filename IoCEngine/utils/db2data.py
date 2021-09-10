@@ -222,7 +222,7 @@ def fac_data(dpid, loaded_batch, fac_type):
         #                 mdjlog.warn('no FACILITY data . ..')
         #             size_done += size2use
         #             mdjlog.info(
-        #                 "getting! #{} of {} Counts: {} of {} of {}".format(c, crounds, size2use, size_done, data_size))
+        #             "getting! #{} of {} Counts: {} of {} of {}".format(c, crounds, size2use, size_done, data_size))
         #         except Exception as e:
         #             mdjlog.error(e)
         #     # fac, fac_cc_df = rez_df(fac_cc_df, loaded_batch, ndx_col)
@@ -339,7 +339,7 @@ def df_round(cc_df, dpid, loaded_batch, mdjlog, ndx_col, size2use, type):
     else:
         df, size = conf_df(loaded_batch, mdjlog, df, rez)
         cc_df = df if cc_df is None else pd.concat([cc_df, df])
-        mdjlog.info(f"getting! # of  Counts: {size2use} of {size}")
+        mdjlog.info(f"getting! # of  Counts: {size} of {size2use}")
     return cc_df
 
 
@@ -363,7 +363,7 @@ def grntr_data(dpid: str, loaded_batch, grntr_type: str = None):
         re_ndx_flds(df, grntr_ndx_flds)
         df.fillna('', inplace=True)
         # df.loc[:, '_id'] = df[grntr_ndx_flds].apply(lambda x: prep_grntr_id(x), axis=1)
-        df.loc[:, '_id'] = df[grntr_ndx_flds].apply(prep_grntr_id)
+        df.loc[:, '_id'] = df[grntr_ndx_flds].apply(prep_grntr_id, axis=1)
         df.set_index('_id', inplace=True)
         return True, df
     except Exception as e:
@@ -374,7 +374,7 @@ def grntr_data(dpid: str, loaded_batch, grntr_type: str = None):
 def prnc_data(dpid: str, loaded_batch, prnc_type: str = None):
     mdjlog = get_logger(loaded_batch['dp_name'])
     try:
-        data_doc_type, df, grntr_cc_df, ndx_col = 'guarantors', None, None, 'account_no'
+        data_doc_type, df, grntr_cc_df, ndx_col = 'guarantors', None, None, 'account_no'  # todo
 
         data_size = int(loaded_batch[data_doc_type])
         rounds, size_done = data_size // split_var + 1, 0
