@@ -190,7 +190,7 @@ def xtrct_all_data(file_meta: DataFiles, mdjlog=None):
             mdjlog.info("data file worksheet names {}".format(sh_names))
             data_list = [confirm_data(name, file) for name in sh_names]
             data_list = [data_item for data_item in data_list if data_item is not None]
-            mdjlog.info(data_list)
+            mdjlog.info(f"{data_list = }")
             for i, sgmnt in enumerate(data_list):
                 # ws = sgmnt[1]
 

@@ -257,7 +257,7 @@ def guarantor_typ():
 
 
 def relation_type():
-    return {
+    d = {
         "002": "006",
         "003": "007",
         "004": "008",
@@ -267,6 +267,8 @@ def relation_type():
         "proprietor": "006",
         "shareholder": "007",
         "managing director": "008",
+        "md": "008",
+        # "DMD": "008",
         "director": "009",
         "executive director": "009",
         "alternate director": "010",
@@ -277,6 +279,7 @@ def relation_type():
         "associate company": "004",
         "partner": "005",
     }
+    return {**d, **{v: v for k, v in d.items()}}
 
 
 def disco_biz_units():

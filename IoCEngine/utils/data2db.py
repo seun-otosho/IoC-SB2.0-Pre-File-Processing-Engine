@@ -408,7 +408,8 @@ def data2col(args, df):
         if None in df.columns:
             df = df[[c for c in df.columns if c]]
         df = df[[c for c in df.columns if 'unnamed' not in c.lower()]]
-        df.columns = ps0 + xtr_cols if datatype in ps and len(df.columns) == len(ps0 + xtr_cols) else cols
+        cps, pps = ps0+ps1[1:]+xtr_cols, ps0+ps1[1:]
+        df.columns = pps if len(df.columns)==len(pps) else cps if datatype in ps else cols
         dpid, cycle_ver = data_tpl[0]['dpid'], data_tpl[0]['cycle_ver']
         data_batch_info['dp_name'] = dp_name
         data_batch_info['dpid'], data_batch_info['cycle_ver'], data_batch_info['file_name'] = dpid, cycle_ver, file_name

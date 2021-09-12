@@ -62,7 +62,7 @@ def worksheet_datatype(name, fn):
 
     #
     elif  name_lower in ('prnc', 'principal', 'principals', 'officers', ) or (
-            'principal' in name_lower and 'officers' in name_lower):
+            'principal' in name_lower and ('officer' in name_lower or 'officers' in name_lower)):
         return 'prnc', name
 
     #

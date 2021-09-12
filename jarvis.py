@@ -163,14 +163,14 @@ def route_filed_data(file_data, mdjlog=None):
 
     mdjlog.info("corp: {}, corpfac: {}".format(corp_df is not None, corpfac_df is not None))
     if corpfac and corp:
-        handle_corporate_data(dp_name, load3Dbatch, mdjlog, corp, corp_df, corpfac, corpfac_df, ndx_column, Bs2u)
+        handle_corp_data(dp_name, load3Dbatch, mdjlog, corp, corp_df, corpfac, corpfac_df, ndx_column, Bs2u)
         # corp_argz = (dp_name, load3Dbatch, mdjlog, corp, corp_df, corpfac, corpfac_df, ndx_column)
         # corp_pro = mupro.Process(target=handle_corporate_data, args=corp_argz)
         # corp_pro.start()
         # upd8batch(load3Dbatch, batches2use)  # , syndifiles
     mdjlog.info(f"ndvdl: {ndvdl_df is not None}, ndvdlfac: {ndvdlfac_df is not None}")
     if ndvdlfac and ndvdl:
-        handle_individual_data(dp_name, load3Dbatch, mdjlog, ndvdl, ndvdl_df, ndvdlfac, ndvdlfac_df, ndx_column, Bs2u)
+        handle_ndvdl_data(dp_name, load3Dbatch, mdjlog, ndvdl, ndvdl_df, ndvdlfac, ndvdlfac_df, ndx_column, Bs2u)
         # ndvdl_argz = (dp_name, load3Dbatch, mdjlog, ndvdl, ndvdl_df, ndvdlfac, ndvdlfac_df, ndx_column)
         # ndvdl_pro = mupro.Process(target=handle_individual_data, args=ndvdl_argz)
         # ndvdl_pro.start()
@@ -206,8 +206,8 @@ def rez_chunk_synd(dpid, loaded_batch, load3DSegments, Bs2u):
                 corp2df = corp_df[corp_df[ndx_column].isin(fac_df[ndx_column])]
                 fac2df = fac_df[fac_df[ndx_column].isin(corp_df[ndx_column])]
                 mdjlog.info("corp: {}, corpfac: {}".format(corp2df is not None, fac2df is not None))
-                handle_corporate_data(loaded_batch['dp_name'], loaded_batch, mdjlog, corp, corp2df, fac,
-                                      fac2df, ndx_column, Bs2u, 'chunk_mode')
+                handle_corp_data(loaded_batch['dp_name'], loaded_batch, mdjlog, corp, corp2df, fac,
+                                 fac2df, ndx_column, Bs2u, 'chunk_mode')
             else:
                 corp_df['dpid'], corp_df['cycle_ver'] = loaded_batch['dpid'], loaded_batch['cycle_ver']
                 upd8DFstatus('corp', corp_df, ndx_column, 'Loaded')
@@ -266,8 +266,8 @@ def rez_chunk_synd(dpid, loaded_batch, load3DSegments, Bs2u):
                 ndvdl2df = ndvdl_df[ndvdl_df[ndx_column].isin(fac_df[ndx_column])]
                 fac2df = fac_df[fac_df[ndx_column].isin(ndvdl_df[ndx_column])]
                 mdjlog.info("ndvdl: {}, ndvdlfac: {}".format(ndvdl2df is not None, fac2df is not None))
-                handle_individual_data(loaded_batch['dp_name'], loaded_batch, mdjlog, ndvdl, ndvdl2df, fac,
-                                       fac2df, ndx_column, Bs2u, 'chunk_mode')
+                handle_ndvdl_data(loaded_batch['dp_name'], loaded_batch, mdjlog, ndvdl, ndvdl2df, fac,
+                                  fac2df, ndx_column, Bs2u, 'chunk_mode')
             else:
                 ndvdl_df['dpid'], ndvdl_df['cycle_ver'] = loaded_batch['dpid'], loaded_batch['cycle_ver']
                 upd8DFstatus('ndvdl', ndvdl_df, ndx_column, 'Loaded')
@@ -320,8 +320,8 @@ def re_init_vars():
 
 
 @profile
-def handle_individual_data(dp_name: str, load3Db, mdjlog: Logger, ndvdl: bool, ndvdl_df: pd.DataFrame, ndvdlfac: bool,
-                           ndvdlfac_df: pd.DataFrame, ndx_column: str, b2u, chunk_mode=None):
+def handle_ndvdl_data(dp_name: str, load3Db, mdjlog: Logger, ndvdl: bool, ndvdl_df: pd.DataFrame, ndvdlfac: bool,
+                      ndvdlfac_df: pd.DataFrame, ndx_column: str, b2u, chunk_mode=None):
     mdjlog.info(f"sbjt's {ndx_column}s {ndvdl_df[ndx_column].nunique():11,}\t"
                 f"|\tcrdt's {ndx_column}s: {ndvdlfac_df[ndx_column].nunique():11,}")
     try:
@@ -329,7 +329,7 @@ def handle_individual_data(dp_name: str, load3Db, mdjlog: Logger, ndvdl: bool, n
         ndvdl_df_no_crdt = ndvdl_df[~ndvdl_df[ndx_column].isin(ndvdlfac_df[ndx_column])]
 
         if not ndvdlfac_df_no_sbjt.empty or not ndvdl_df_no_crdt.empty:
-            handle_missing_segment_records(dp_name, mdjlog, ndvdl_df_no_crdt, ndvdlfac_df_no_sbjt, "Cons")
+            missing_records(dp_name, mdjlog, ndvdl_df_no_crdt, ndvdlfac_df_no_sbjt, "Cons")
 
         if ndvdl and ndvdlfac:
             ndvdl2df = ndvdl_vals(load3Db, ndvdl_df, )
@@ -345,8 +345,8 @@ def handle_individual_data(dp_name: str, load3Db, mdjlog: Logger, ndvdl: bool, n
         mdjlog.error(e)
 
 
-def handle_missing_segment_records(dp_name: str, mdjlog: Logger, sbjt_df_no_crdt: pd.DataFrame,
-                                   fac_df_no_sbjt: pd.DataFrame, ctype: str):
+def missing_records(dp_name: str, mdjlog: Logger, sbjt_df_no_crdt: pd.DataFrame,
+                    fac_df_no_sbjt: pd.DataFrame, ctype: str):
     fac_chck = not fac_df_no_sbjt.empty and fac_df_no_sbjt.shape[0] > 0
     sbj_chck = not sbjt_df_no_crdt.empty and sbjt_df_no_crdt.shape[0] > 0
 
@@ -382,8 +382,8 @@ def handle_missing_segment_records(dp_name: str, mdjlog: Logger, sbjt_df_no_crdt
 
 
 @profile
-def handle_corporate_data(dp_name: str, load3Db, mdjlog: Logger, corp: bool, corp_df: pd.DataFrame,
-                          corpfac: bool, corpfac_df: pd.DataFrame, ndx_column: str, b2u, chunk_mode=None):
+def handle_corp_data(dp_name: str, load3Db, mdjlog: Logger, corp: bool, corp_df: pd.DataFrame,
+                     corpfac: bool, corpfac_df: pd.DataFrame, ndx_column: str, b2u, chunk_mode=None):
     mdjlog.info(f"sbjt's {ndx_column}s {corp_df[ndx_column].nunique():11,}\t"
                 f"|\tcrdt's {ndx_column}s {corpfac_df[ndx_column].nunique():11,}")
     try:
@@ -391,7 +391,7 @@ def handle_corporate_data(dp_name: str, load3Db, mdjlog: Logger, corp: bool, cor
         corp_df_no_crdt = corp_df[~corp_df[ndx_column].isin(corpfac_df[ndx_column])]
 
         if not corpfac_df_no_sbjt.empty or not corp_df_no_crdt.empty:
-            handle_missing_segment_records(dp_name, mdjlog, corp_df_no_crdt, corpfac_df_no_sbjt, "Corp")
+            missing_records(dp_name, mdjlog, corp_df_no_crdt, corpfac_df_no_sbjt, "Corp")
 
         if corp and corpfac:
             corp2df = corp_vals(load3Db, corp_df, )
