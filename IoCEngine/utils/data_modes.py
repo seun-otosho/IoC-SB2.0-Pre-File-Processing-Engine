@@ -69,7 +69,7 @@ def iff() -> dict:
                 'branch_code', 'account_no', 'cust_id', 'prev_cust_id', 'biz_reg_no', 'incorp_date', 'prev_biz_reg_no',
                 'incorp_cert', 'soc_reg_no', 'tax_id', 'iss_auth1', 'id_code1', 'id_code1d8xpry', 'iss_auth2',
                 'id_code2', 'id_code2d8xpry', 'is_sme', 'biz_corp_type', 'biz_name', 'shrt_biz_name',
-                'prev_reg_biz_name', 'prev_shrt_biz_name', 'biz_category', 'biz_category2', 'biz_category3',
+                'prev_name', 'prev_shrt_biz_name', 'biz_category', 'biz_category2', 'biz_category3',
                 'pri_addr_typ', 'pri_addr_line1', 'pri_addr_line2', 'pri_addr_line3', 'pri_addr_city_lga',
                 'pri_addr_state', 'pri_addr_post_code', 'pri_addr_country', 'sec_addr_typ', 'sec_addr_line1',
                 'sec_addr_line2', 'sec_addr_line3', 'sec_addr_city_lga', 'sec_addr_state', 'sec_addr_post_code',
@@ -117,7 +117,7 @@ def iff() -> dict:
 
                 'iss_auth1', 'bvn', 'id_code1d8xpry', 'iss_auth2', 'id_code2', 'id_code2d8xpry',
 
-                'last_name', 'middle_name', 'first_name', 'full_name', 'prev_name', 'birth_date', 'gender',
+                'last_name', 'middle_name', 'first_name', 'full_name', 'prev_full_name', 'birth_date', 'gender',
                 'mrtl_stat',
 
                 'biz_name', 'shrt_biz_name', 'prev_reg_biz_name', 'biz_corp_type', 'biz_category', 'biz_category2',
@@ -137,7 +137,7 @@ def iff() -> dict:
                 'prev_biz_reg_no',
                 'incorp_cert', 'trustee_reg_no', 'tax_id', 'iss_auth1', 'id_code1', 'id_code1d8xpry', 'iss_auth2',
                 'id_code2',
-                'id_code2d8xpry', 'biz_corp_type', 'biz_name', 'shrt_biz_name', 'prev_reg_biz_name',
+                'id_code2d8xpry', 'biz_corp_type', 'biz_name', 'shrt_biz_name', 'prev_name',
                 'prev_shrt_biz_name',
                 'biz_category', 'biz_category2', 'biz_category3', 'pri_addr_typ', 'pri_addr_line1', 'pri_addr_line2',
                 'pri_addr_line3', 'pri_addr_city_lga', 'pri_addr_state', 'pri_addr_post_code', 'pri_addr_country',
@@ -184,7 +184,7 @@ def iff() -> dict:
 
                 'biz_reg_no', 'incorp_date', 'prev_biz_reg_no', 'incorp_cert', 'soc_reg_no', 'biz_tax_id',
 
-                'last_name', 'middle_name', 'first_name', 'full_name', 'prev_name', 'birth_incorp_date', 'gender',
+                'last_name', 'middle_name', 'first_name', 'full_name', 'prev_full_name', 'birth_incorp_date', 'gender',
                 'mrtl_stat',
 
                 'biz_name', 'shrt_biz_name', 'prev_reg_biz_name', 'biz_corp_type', 'market_association_name',
@@ -202,7 +202,7 @@ def iff() -> dict:
                 'branch_code', 'account_no', 'cust_id', 'prev_cust_id', 'biz_reg_no', 'incorp_date', 'prev_biz_reg_no',
                 'incorp_cert', 'trustee_reg_no', 'tax_id', 'iss_auth1', 'id_code1', 'id_code1d8xpry', 'iss_auth2',
                 'id_code2',
-                'id_code2d8xpry', 'is_sme', 'biz_corp_type', 'biz_name', 'shrt_biz_name', 'prev_reg_biz_name',
+                'id_code2d8xpry', 'is_sme', 'biz_corp_type', 'biz_name', 'shrt_biz_name', 'prev_name',
                 'prev_shrt_biz_name',
                 'biz_category', 'biz_category2', 'biz_category3', 'pri_addr_typ', 'pri_addr_line1', 'pri_addr_line2',
                 'pri_addr_line3', 'pri_addr_city_lga', 'pri_addr_state', 'pri_addr_post_code', 'pri_addr_country',
@@ -242,7 +242,7 @@ def iff() -> dict:
 
             'iss_auth1', 'bvn', 'id_code1d8xpry', 'iss_auth2', 'id_code2', 'id_code2d8xpry',
 
-            'last_name', 'middle_name', 'first_name', 'full_name', 'prev_name', 'birth_date', 'gender',
+            'last_name', 'middle_name', 'first_name', 'full_name', 'prev_full_name', 'birth_date', 'gender',
             'mrtl_stat',
 
             'biz_name', 'shrt_biz_name', 'prev_reg_biz_name', 'biz_category', 'biz_category2', 'biz_category3',
@@ -323,7 +323,7 @@ def phed() -> dict:
             'branch_code', 'prev_branch_id', 'account_no', 'cust_id', 'prev_acct_no', 'prev_cust_id', 'biz_reg_no',
             'date of registration', 'prev_biz_reg_no', 'incorp_cert', 'trustee_reg_no', 'tax_id', 'iss_auth1',
             'id_code1', 'id_code1d8xpry', 'iss_auth2', 'id_code2', 'is_sme', 'biz_name', 'shrt_biz_name',
-            'prev_reg_biz_name', 'prev_shrt_biz_name', 'pri_addr_line1', 'pri_addr_line2', 'pri_addr_line3',
+            'prev_name', 'prev_shrt_biz_name', 'pri_addr_line1', 'pri_addr_line2', 'pri_addr_line3',
             'pri_addr_country', 'phone_no', 'fax_no', 'e_mail_addr', 'url', 'tariff'
         ),
     }
