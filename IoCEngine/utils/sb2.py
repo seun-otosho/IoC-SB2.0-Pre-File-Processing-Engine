@@ -14,21 +14,13 @@ import pandas as pd
 from auto_bots import upd8batch
 from elasticsearch import helpers
 from IoCEngine import xtrcxn_area
-from IoCEngine.commons import (count_down, fig_str, get_logger, gs,
-                               iff_sb2_modes, mk_dir, profile, ps, right_now,
+from IoCEngine.commons import (count_down, fig_str, get_logger, gs, iff_sb2_modes, mk_dir, profile, ps, right_now,
                                std_out, time_t, multi_pro)
 from IoCEngine.config.pilot import chunk_size, cores2u, es, es_i, es_ii
-from IoCEngine.SHU.trans4mas import (df_d8s2str, gender_dict, grntr_typ,
-                                     rlxn_typ)
-from IoCEngine.utils.data_modes import iff
+from IoCEngine.SHU.trans4mas import df_d8s2str, gender_dict, grntr_typ, rlxn_typ
+from IoCEngine.utils.data_modes import iff, prevs
 from IoCEngine.utils.db2data import grntr_data, prnc_data
 from IoCEngine.utils.file import DataFiles, SB2FileInfo, DataBatchProcess
-
-a, b, c = 1, 2, 3
-
-
-# todo override for dev and test
-# mpcores = 3
 
 
 def var_name(var):
@@ -213,10 +205,6 @@ def ps_vals(mdjlog: Logger, ps_data: pd.DataFrame):
 def gs_vals(gs_data: pd.DataFrame, mdjlog: Logger):
     gs_data.loc[:, 'pri_addr_typ'] = '001'
     gs_data.loc[:, 'grntr_type'] = gs_data.grntr_type.apply(lambda x: grntr_typ[x.lower()])
-    # gs_data.loc[:, 'birth_incorp_date'] = gs_data[['grntr_type', 'birth_incorp_date']].apply(
-    #     lambda x: x[1] if x[0] == '001' else x[1], axis=1)
-    # gs_data.loc[:, 'birth_incorp_date'] = gs_data[['grntr_type', 'birth_incorp_date']].apply(
-    #     lambda x: x[1] if x[0] == '002' else x[1], axis=1)
     df_d8s2str(gs_data, mdjlog)
     gs_data['gender'] = gs_data[['grntr_type', 'gender']].apply(
         lambda x: gender_dict.get(str(x[1]).strip().upper(), '') if x[0] == '002' else '', axis=1)
@@ -242,12 +230,15 @@ def syndi_pairs(targs: tuple):
     #     [str(crdt_data.ix[idx][k][0]) if k in crdt_data.ix[idx] else '' for k in iff_sbjt_cols])
 
     if meta_data['in_mod'] not in iff_sb2_modes:
+        prev_cols2u = [c for c in prevs()+('cust_id',) if c in crdt_data.columns]
+        prev_df = crdt_data[prev_cols2u].drop_duplicates()
         branch_code_df = sbjt_data[['cust_id', 'branch_code']]
         account_no_df = crdt_data[['cust_id', 'account_no']]
         crdt_data = crdt_data[[c for c in crdt_data.columns if c not in 'branch_code']]
         crdt_data = pd.merge(crdt_data, branch_code_df, on='cust_id', how='inner')
         sbjt_data = sbjt_data[[c for c in sbjt_data if c != 'account_no']]
         iff_sbjt_data = pd.merge(account_no_df, sbjt_data, on='cust_id', how='inner')
+        iff_sbjt_data = pd.merge(iff_sbjt_data, prev_df, on='cust_id', how='inner')
     else:
         iff_sbjt_data = sbjt_data
 

@@ -4,18 +4,13 @@ import pandas as pd
 from elasticsearch import helpers
 from pandasticsearch import Select
 
-from IoCEngine.commons import (
-    cs, data_type_dict, fs, gs, ns, submission_type_dict, re_ndx_flds, profile
-)
+from IoCEngine.commons import cs, data_type_dict, fs, gs, ns, submission_type_dict, re_ndx_flds, profile
 from IoCEngine.config.pilot import chunk_size as split_var, es, es_i
 from IoCEngine.logger import get_logger
 from IoCEngine.utils.data2db import prep_grntr_id, prep_prnc_id
 from IoCEngine.utils.file import DataBatchProcess
 
 mdjlog = get_logger('jarvis')
-
-
-# split_var = 45788
 
 
 def combo_data(dpid: str, loaded_batch, xtrcxn_zone):
